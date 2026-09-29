@@ -425,3 +425,27 @@ Each of the seven rules requires at least one positive and one negative unit tes
 - Re-check every source before Phase 4 implementation and again before the Phase 6 demo freeze.
 - If a source has been superseded, increment `rules_version`, document the change in `DECISIONS.md`, and update tests before using the new rule.
 - If a proposition cannot be supported by a current primary source, remove or disable the rule; do not fill the gap with model output or an unsupported assumption.
+
+## 12. Engine gap markers (not rules)
+
+The seven rules above are the only approved conflict rules. When the engine meets a case the rules deliberately exclude, it must emit a labeled gap instead of forcing the case through the nearest rule. Gap markers use a `GAP-` prefix so they can never be mistaken for an approved rule ID, always use severity `low`, and always use finding type `scope_gap`.
+
+| Marker | Emitted when |
+|---|---|
+| `GAP-LIFE-SCOPE` | An insurance nomination matching a will bequest is not a life policy, or its MWP Act section 6 or assignment status is not confirmed as out of scope. |
+| `GAP-NPS-RELATIONSHIP` | The owner is confirmed to have a family but a listed NPS nominee relationship is neither clearly inside nor clearly outside the regulation's family definition. |
+| `GAP-ASSET-REFERENCE` | An extracted record has no asset reference at all, so deterministic matching is impossible. |
+| `GAP-ASSET-NEAR-MATCH` | A nomination and a will clause differ only by a truncated reference or an institution-name variant, so they must not be treated as either the same asset or a clean result. |
+| `GAP-UNSUPPORTED-SUPERSESSION` | Two nomination records disagree on an asset type the rules exclude, or on a policy under the MWP Act or an active assignment. |
+
+A gap means *manual review required*. It is never a conflict, never carries a severity above `low`, and never implies a legal position. Gaps still carry the mandatory disclaimer.
+
+## 13. Documented deterministic normalization
+
+`relationship` is free text, so the engine maps it before applying the two rules that depend on it. These tables are part of the implementation contract:
+
+- Close family for `LIFE-WILL-001` severity: `spouse`, `husband`, and `wife` map to spouse; `child`, `son`, and `daughter` map to child; `parent`, `mother`, and `father` map to parent.
+- Explicitly outside the NPS family definition for `NPS-VALIDITY-001`: `friend`, `sibling`, `brother`, `sister`, `charity`, `unrelated`, and `other_non_family`.
+- Anything else is `ambiguous`. Ambiguous relationships use medium severity for `LIFE-WILL-001` and produce `GAP-NPS-RELATIONSHIP` instead of a validity warning.
+
+Known Phase 4 limitation: `BANK-WILL-001` is scoped to individually held accounts and `MF-WILL-001` to sole-holder folios, but the extraction schema carries no holding-pattern field, so the engine cannot yet exclude a joint account or a demat-only holding. Until that field exists, a joint holding that is classified as a bank account or mutual-fund folio would be reported as a conflict. This is recorded rather than silently ignored.

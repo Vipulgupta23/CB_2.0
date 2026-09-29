@@ -145,3 +145,14 @@ docker compose run --rm -e JEEVANSETU_API_URL=http://backend:8000 backend python
 - Clean persona: Rohan Demo-Sen — matching bank and life-policy people, with no expected conflict.
 
 These are synthetic examples, not legal forms or legal advice. The expected conflict is a future deterministic test target; Phase 3 does not implement or run a conflict engine.
+
+## Phase 4 conflict detection
+
+The deterministic engine lives in `backend/app/detection.py` and is the only place a conflict is decided. It imports no AI client. Gemini is used afterwards to reword a finding that is already fixed, and rejected wording or a failed call never hides a finding.
+
+- `POST /personas/{id}/detections` — run the engine and persist a detection run. Add `?explain=false` to skip model wording.
+- `GET /personas/{id}/detections/latest` — read the most recent run.
+
+Each finding carries the rule ID, rules version, finding type, severity, both sources with locators and exact source text, a deterministic summary, a legal scope note, suggested actions, and the mandatory disclaimer. Cases the rules exclude are returned as `GAP-*` scope gaps, never as conflicts. See `backend/rules/RULES.md` sections 12 and 13 for gap markers, the documented relationship normalization, and the recorded joint-holding limitation.
+
+On the Phase 3 demo data the engine reports exactly one `BANK-WILL-001` conflict for the conflict persona and nothing for the clean persona. Readiness scoring arrives in Phase 5.

@@ -7,8 +7,8 @@ Last updated: 2026-09-29
 - [x] **Phase 0 — Setup:** approved by user on 2026-09-29.
 - [x] **Phase 1 — Legal rule research:** approved by user on 2026-09-29.
 - [x] **Phase 2 — Document upload and AI extraction:** approved by user on 2026-09-29.
-- [x] **Phase 3 — Synthetic demo documents:** seven PDFs generated and live-extraction verified; awaiting user review.
-- [ ] **Phase 4 — Deterministic conflict detection engine**
+- [x] **Phase 3 — Synthetic demo documents:** approved by user on 2026-09-29.
+- [x] **Phase 4 — Deterministic conflict detection engine:** all seven rules implemented and verified live; awaiting user review.
 - [ ] **Phase 5 — Readiness score and results UI**
 - [ ] **Phase 6 — Polish and demo readiness**
 - [ ] **Phase 7 — Stretch concept/future estate-case view**
@@ -75,8 +75,27 @@ Last updated: 2026-09-29
 - [x] Confirm the intended mismatch is exactly a `BANK-WILL-001` instance.
 - [x] Confirm aligned life-policy and mutual-fund records avoid accidental conflicts.
 - [x] Write Phase 3 decisions and completion report.
-- [ ] User review and exact approval phrase: `APPROVED PHASE 3`.
+- [x] User approval received: `APPROVED PHASE 3`.
+
+## Phase 4 checklist
+
+- [x] Implement all seven approved rules as a pure deterministic function.
+- [x] Keep every rule decision free of AI involvement, asserted by test.
+- [x] Apply the documented ordering, suppression, and deduplication.
+- [x] Emit labeled `GAP-*` markers for excluded cases instead of forced conflicts.
+- [x] Attach the exact disclaimer to every finding and to the run payload.
+- [x] Add Gemini wording that is rejected if it states a legal outcome.
+- [x] Preserve complete deterministic content when wording fails.
+- [x] Expand the findings schema and enforce the schema-version guard.
+- [x] Add detection run and latest-run API routes.
+- [x] Cover every rule with positive and negative unit tests.
+- [x] Pin engine rule text to `RULES.md` with a test.
+- [x] Fix all three suppression defects found by semantic review, with regression tests.
+- [x] Pass 72 tests locally and in Docker.
+- [x] Verify live: exactly one `BANK-WILL-001` for the conflict persona, nothing for the clean persona.
+- [x] Write Phase 4 decisions and completion report.
+- [ ] User review and exact approval phrase: `APPROVED PHASE 4`.
 
 ## Phase boundary
 
-No deterministic conflict engine, score, results UI, or vault behavior has been started. Phase 4 must not begin before exact Phase 3 approval.
+No readiness score, results UI, vault, or simulated fix flow has been started. Phase 5 must not begin before exact Phase 4 approval.

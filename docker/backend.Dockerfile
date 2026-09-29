@@ -13,6 +13,7 @@ COPY backend/rules ./rules
 COPY backend/scripts ./scripts
 COPY backend/tests ./tests
 COPY backend/pytest.ini ./pytest.ini
+COPY seed_data ./seed_data
 
 EXPOSE 8000
 

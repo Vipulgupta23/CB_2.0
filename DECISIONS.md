@@ -196,3 +196,53 @@ This is a dated, append-only project log. Legal-rule entries must identify a pub
 **Decision:** The manifest accepts `share_percent` as null or 100 for will language giving “all” of an asset. Nomination forms retain exact numeric percentages.
 
 **Reasoning:** Both representations preserve the named recipient, but null avoids forcing a numeric fact absent from the clause. Conflict rules compare named people and exact assets, not will share percentages in this demo.
+
+## 2026-09-29 — Phase 4
+
+### D-030 — Phase 3 approved; Phase 4 unlocked
+
+**Decision:** The user supplied `APPROVED PHASE 3` after a full pre-phase audit. Phase 4 may implement the deterministic engine; Phase 5 remains blocked.
+
+### D-031 — The engine is a pure function with no AI dependency
+
+**Decision:** `backend/app/detection.py` decides every conflict from structured records plus explicitly confirmed persona context. It imports no model client. A test asserts the module source contains no AI reference and that constructing a client during detection fails.
+
+**Reasoning:** Conflict results must be explainable and testable without re-calling a model, per PRD section 6 and `RULES.md` section 1.
+
+### D-032 — Excluded cases become labeled gap markers, never forced conflicts
+
+**Decision:** Unsupported cases emit `GAP-LIFE-SCOPE`, `GAP-NPS-RELATIONSHIP`, `GAP-ASSET-REFERENCE`, `GAP-ASSET-NEAR-MATCH`, or `GAP-UNSUPPORTED-SUPERSESSION`, all severity `low` and finding type `scope_gap`. They are documented in `RULES.md` section 12 and are not approved rules.
+
+**Reasoning:** `RULES.md` section 9 requires unsupported cases to be labeled manual review required. A silent clean result would be misleading.
+
+### D-033 — Gap findings are stored in the existing findings table
+
+**Decision:** Persist gaps in the `conflicts` table with `finding_type='scope_gap'` rather than adding a sixth table. API responses separate `conflicts` from `scope_gaps`, and gaps never count as conflicts.
+
+**Reasoning:** Keeps the schema small for the hackathon while making gaps durable and re-readable after a run.
+
+### D-034 — Documented relationship normalization
+
+**Decision:** Free-text relationships are mapped deterministically to spouse/child/parent for `LIFE-WILL-001` severity, and to an explicit non-family set for `NPS-VALIDITY-001`. Anything else is ambiguous, which yields medium severity or a gap rather than a validity conclusion. The tables are recorded in `RULES.md` section 13.
+
+### D-035 — Model wording is rejected if it states a legal outcome
+
+**Decision:** Gemini explanations are validated after generation against a forbidden-claim list. A rejected or failed explanation falls back to `explanation_source='unavailable'`, and the deterministic summary, scope note, actions, and disclaimer are still returned.
+
+**Reasoning:** A system prompt alone is not a control. Explanation wording must never acquire the engine's authority.
+
+### D-036 — Three suppression defects found by review were corrected
+
+**Decision:** An insurer acknowledgement only suppresses `LIFE-NOTICE-001` when it names the will's person; the `NPS-VALIDITY-001` marriage branch only considers the same NPS account; and a supersession winner requires a real registration date rather than a file date.
+
+**Reasoning:** Each original predicate deleted a finding the approved rules require, and the "newest dated document wins" inference is an explicit non-rule.
+
+### D-037 — Known joint-holding limitation is recorded, not worked around
+
+**Decision:** `BANK-WILL-001` and `MF-WILL-001` scope limits for joint accounts and demat-only holdings cannot be enforced because the extraction schema has no holding-pattern field. This is documented in `RULES.md` section 13 instead of being silently ignored or guessed.
+
+### D-038 — Explanation fan-out is capped per request
+
+**Decision:** At most 10 findings per detection run receive a model-generated explanation. Remaining findings still return complete deterministic content.
+
+**Reasoning:** Bounds free-tier usage and request duration on an unauthenticated local endpoint.

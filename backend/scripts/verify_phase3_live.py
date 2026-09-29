@@ -8,8 +8,15 @@ from pathlib import Path
 import httpx
 
 BASE_URL = os.getenv("JEEVANSETU_API_URL", "http://localhost:8000")
-ROOT = Path(__file__).resolve().parents[2]
-SEED_ROOT = ROOT / "seed_data"
+def _seed_root() -> Path:
+    for parent in Path(__file__).resolve().parents:
+        candidate = parent / "seed_data"
+        if (candidate / "expected_extractions.json").exists():
+            return candidate
+    raise FileNotFoundError("seed_data was not found")
+
+
+SEED_ROOT = _seed_root()
 MANIFEST = json.loads((SEED_ROOT / "expected_extractions.json").read_text())
 
 

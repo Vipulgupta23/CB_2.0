@@ -92,13 +92,30 @@ CREATE TABLE IF NOT EXISTS detection_runs (
 CREATE TABLE IF NOT EXISTS conflicts (
     id INTEGER PRIMARY KEY,
     run_id INTEGER NOT NULL REFERENCES detection_runs(id) ON DELETE CASCADE,
+    rules_version TEXT NOT NULL,
     rule_id TEXT NOT NULL,
-    severity TEXT NOT NULL,
+    finding_type TEXT NOT NULL CHECK (
+        finding_type IN ('review_conflict', 'validity_warning', 'scope_gap')
+    ),
+    severity TEXT NOT NULL CHECK (severity IN ('high', 'medium', 'low')),
+    asset_type TEXT NOT NULL,
+    asset_reference TEXT NOT NULL,
     field_a_id INTEGER REFERENCES extracted_fields(id) ON DELETE SET NULL,
+    source_a_label TEXT NOT NULL,
+    source_a_locator TEXT NOT NULL,
+    source_a_text TEXT NOT NULL,
     field_b_id INTEGER REFERENCES extracted_fields(id) ON DELETE SET NULL,
-    summary TEXT NOT NULL,
+    source_b_label TEXT,
+    source_b_locator TEXT,
+    source_b_text TEXT,
+    summary TEXT NOT NULL CHECK (length(trim(summary)) > 0),
+    legal_scope_note TEXT NOT NULL CHECK (length(trim(legal_scope_note)) > 0),
+    suggested_actions_json TEXT NOT NULL,
     explanation TEXT,
     suggested_fix TEXT,
+    explanation_source TEXT CHECK (
+        explanation_source IS NULL OR explanation_source IN ('gemini', 'unavailable')
+    ),
     disclaimer TEXT NOT NULL CHECK (length(trim(disclaimer)) > 0),
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );

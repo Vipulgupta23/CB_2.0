@@ -151,3 +151,33 @@ def test_startup_recovers_interrupted_extraction(database: Path) -> None:
             (persona_id,),
         ).fetchone()
     assert tuple(row) == ("failed", "extraction_interrupted")
+
+
+def test_legacy_conflicts_table_is_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    database_path = tmp_path / "legacy_conflicts.db"
+    monkeypatch.setenv("DATABASE_PATH", str(database_path))
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            "CREATE TABLE documents (id INTEGER PRIMARY KEY, content_sha256 TEXT)"
+        )
+        connection.execute("CREATE TABLE conflicts (id INTEGER PRIMARY KEY, rule_id TEXT)")
+
+    with pytest.raises(SchemaVersionError, match="conflicts"):
+        init_db()
+
+
+def test_older_schema_version_is_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    database_path = tmp_path / "old_version.db"
+    monkeypatch.setenv("DATABASE_PATH", str(database_path))
+    init_db()
+    with sqlite3.connect(database_path) as connection:
+        connection.execute("PRAGMA user_version = 1")
+
+    with pytest.raises(SchemaVersionError, match="older than"):
+        init_db()

@@ -2,10 +2,25 @@
 
 import json
 import sqlite3
+from datetime import date
 from typing import Any
 
 from app.db import get_connection
-from app.models import DocumentRead, ExtractionResult, PersonaCreate, PersonaRead
+from app.detection import (
+    DISCLAIMER,
+    RULES_VERSION,
+    FieldRecord,
+    Finding,
+    PersonaContext,
+    normalize_text,
+)
+from app.models import (
+    DetectionRunRead,
+    DocumentRead,
+    ExtractionResult,
+    PersonaCreate,
+    PersonaRead,
+)
 from app.uploads import ValidatedUpload
 
 
@@ -282,3 +297,199 @@ def get_document_storage(document_id: int) -> tuple[str, str]:
     if row is None:
         raise RecordNotFoundError(f"Document {document_id} not found")
     return row["storage_path"], row["mime_type"]
+
+
+def _parse_date(value: str | None) -> date | None:
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def load_persona_context(persona_id: int) -> PersonaContext:
+    persona = get_persona(persona_id)
+    aliases = frozenset(
+        frozenset({normalize_text(left), normalize_text(right)})
+        for left, right in persona.manually_confirmed_aliases
+    )
+    return PersonaContext(
+        owner_has_family=persona.owner_has_family.value,
+        marriage_date=persona.marriage_date,
+        family_context_source_text=persona.family_context_source_text,
+        confirmed_aliases=aliases,
+    )
+
+
+def load_field_records(persona_id: int) -> list[FieldRecord]:
+    get_persona(persona_id)
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT f.*, d.doc_type, d.document_date, d.status
+            FROM extracted_fields AS f
+            JOIN documents AS d ON d.id = f.document_id
+            WHERE d.persona_id = ? AND d.status = 'extracted'
+            ORDER BY f.id
+            """,
+            (persona_id,),
+        ).fetchall()
+
+    return [
+        FieldRecord(
+            field_id=row["id"],
+            document_id=row["document_id"],
+            document_type=row["doc_type"] or "unknown",
+            document_date=_parse_date(row["document_date"]),
+            document_group_id=row["document_group_id"],
+            asset_type=row["asset_type"],
+            institution_name=row["institution_name"],
+            asset_reference=row["asset_reference"],
+            named_person=row["person_name"],
+            relationship=row["relationship"],
+            mechanism_type=row["mechanism"],
+            share_percent=row["share_percent"],
+            source_text=row["source_text"],
+            source_locator=row["source_locator"],
+            registration_status=row["registration_status"],
+            registration_date=_parse_date(row["registration_date"]),
+            explicit_nomination_action=row["explicit_nomination_action"],
+            policy_kind=row["policy_kind"],
+            mwpa_section_6_applies=row["mwpa_section_6_applies"],
+            assignment_status=row["assignment_status"],
+        )
+        for row in rows
+    ]
+
+
+def save_detection_run(
+    persona_id: int,
+    findings: list[tuple[Finding, tuple[str | None, str | None, str | None] | None]],
+) -> int:
+    """Persist one detection run and its findings.
+
+    ``findings`` pairs each deterministic finding with an optional
+    ``(explanation, suggested_fix, explanation_source)`` triple.
+    """
+    get_persona(persona_id)
+    with get_connection() as connection:
+        run_id = int(
+            connection.execute(
+                "INSERT INTO detection_runs (persona_id, rules_version) VALUES (?, ?)",
+                (persona_id, RULES_VERSION),
+            ).lastrowid
+        )
+        for finding, explanation in findings:
+            explanation_text, suggested_fix, explanation_source = (
+                explanation if explanation else (None, None, None)
+            )
+            connection.execute(
+                """
+                INSERT INTO conflicts (
+                    run_id, rules_version, rule_id, finding_type, severity,
+                    asset_type, asset_reference,
+                    field_a_id, source_a_label, source_a_locator, source_a_text,
+                    field_b_id, source_b_label, source_b_locator, source_b_text,
+                    summary, legal_scope_note, suggested_actions_json,
+                    explanation, suggested_fix, explanation_source, disclaimer
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run_id,
+                    finding.rules_version,
+                    finding.rule_id,
+                    finding.finding_type,
+                    finding.severity,
+                    finding.asset_type,
+                    finding.asset_reference,
+                    finding.source_a.field_id,
+                    finding.source_a.label,
+                    finding.source_a.locator,
+                    finding.source_a.text,
+                    finding.source_b.field_id if finding.source_b else None,
+                    finding.source_b.label if finding.source_b else None,
+                    finding.source_b.locator if finding.source_b else None,
+                    finding.source_b.text if finding.source_b else None,
+                    finding.summary,
+                    finding.legal_scope_note,
+                    json.dumps(list(finding.suggested_actions)),
+                    explanation_text,
+                    suggested_fix,
+                    explanation_source,
+                    finding.disclaimer,
+                ),
+            )
+        return run_id
+
+
+def _finding_row_to_read(row: Any) -> dict[str, Any]:
+    source_b = None
+    if row["source_b_label"] is not None:
+        source_b = {
+            "label": row["source_b_label"],
+            "locator": row["source_b_locator"] or "",
+            "text": row["source_b_text"] or "",
+            "field_id": row["field_b_id"],
+        }
+    return {
+        "id": row["id"],
+        "rule_id": row["rule_id"],
+        "rules_version": row["rules_version"],
+        "finding_type": row["finding_type"],
+        "severity": row["severity"],
+        "asset_type": row["asset_type"],
+        "asset_reference": row["asset_reference"],
+        "summary": row["summary"],
+        "legal_scope_note": row["legal_scope_note"],
+        "suggested_actions": json.loads(row["suggested_actions_json"]),
+        "source_a": {
+            "label": row["source_a_label"],
+            "locator": row["source_a_locator"],
+            "text": row["source_a_text"],
+            "field_id": row["field_a_id"],
+        },
+        "source_b": source_b,
+        "explanation": row["explanation"],
+        "suggested_fix": row["suggested_fix"],
+        "explanation_source": row["explanation_source"],
+        "disclaimer": row["disclaimer"],
+    }
+
+
+def get_detection_run(run_id: int) -> DetectionRunRead:
+    with get_connection() as connection:
+        run = connection.execute(
+            "SELECT * FROM detection_runs WHERE id = ?",
+            (run_id,),
+        ).fetchone()
+        if run is None:
+            raise RecordNotFoundError(f"Detection run {run_id} not found")
+        rows = connection.execute(
+            "SELECT * FROM conflicts WHERE run_id = ? ORDER BY id",
+            (run_id,),
+        ).fetchall()
+
+    findings = [_finding_row_to_read(row) for row in rows]
+    return DetectionRunRead(
+        id=run["id"],
+        persona_id=run["persona_id"],
+        rules_version=run["rules_version"],
+        readiness_score=run["readiness_score"],
+        run_at=run["run_at"],
+        disclaimer=DISCLAIMER,
+        conflicts=[f for f in findings if f["finding_type"] != "scope_gap"],
+        scope_gaps=[f for f in findings if f["finding_type"] == "scope_gap"],
+    )
+
+
+def get_latest_detection_run(persona_id: int) -> DetectionRunRead:
+    get_persona(persona_id)
+    with get_connection() as connection:
+        row = connection.execute(
+            "SELECT id FROM detection_runs WHERE persona_id = ? ORDER BY id DESC LIMIT 1",
+            (persona_id,),
+        ).fetchone()
+    if row is None:
+        raise RecordNotFoundError(f"No detection run exists for persona {persona_id}")
+    return get_detection_run(int(row["id"]))

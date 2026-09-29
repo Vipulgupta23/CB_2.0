@@ -179,3 +179,57 @@ class ExtractionFailureRead(StrictModel):
 
 class DocumentListRead(StrictModel):
     documents: list[DocumentRead]
+
+
+class FindingType(StrEnum):
+    REVIEW_CONFLICT = "review_conflict"
+    VALIDITY_WARNING = "validity_warning"
+    SCOPE_GAP = "scope_gap"
+
+
+class Severity(StrEnum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class ExplanationSource(StrEnum):
+    GEMINI = "gemini"
+    UNAVAILABLE = "unavailable"
+
+
+class FindingSourceRead(StrictModel):
+    label: str
+    locator: str
+    text: str
+    field_id: int | None
+
+
+class FindingRead(StrictModel):
+    id: int
+    rule_id: str
+    rules_version: str
+    finding_type: FindingType
+    severity: Severity
+    asset_type: str
+    asset_reference: str
+    summary: str
+    legal_scope_note: str
+    suggested_actions: list[str]
+    source_a: FindingSourceRead
+    source_b: FindingSourceRead | None
+    explanation: str | None
+    suggested_fix: str | None
+    explanation_source: ExplanationSource | None
+    disclaimer: str
+
+
+class DetectionRunRead(StrictModel):
+    id: int
+    persona_id: int
+    rules_version: str
+    readiness_score: int | None
+    run_at: str
+    disclaimer: str
+    conflicts: list[FindingRead]
+    scope_gaps: list[FindingRead]
