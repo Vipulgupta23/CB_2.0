@@ -1,11 +1,12 @@
 """FastAPI entry point for JeevanSetu."""
 
+import logging
 import os
 import sqlite3
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -42,6 +43,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(router)
+
+
+@app.exception_handler(Exception)
+async def unhandled_error(_: Request, exc: Exception) -> JSONResponse:
+    """Return a sanitized error instead of leaking internals or document content."""
+    logging.getLogger("jeevansetu").exception("Unhandled error: %s", type(exc).__name__)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "code": "internal_error",
+            "message": (
+                "Something went wrong on the server. Stored synthetic records were not "
+                "changed. Check the backend logs for details."
+            ),
+        },
+    )
 
 
 @app.get("/health", tags=["system"])

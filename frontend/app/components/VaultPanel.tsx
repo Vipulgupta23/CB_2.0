@@ -140,6 +140,16 @@ export function VaultPanel({
                 {document.document_date ?? "no date"} · {document.status}
               </span>
             </summary>
+            {document.extraction_source === "manual_fallback" ? (
+              <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+                Pre-verified fallback data, not a live AI extraction. Re-seed in live mode
+                to extract this document with the model.
+              </p>
+            ) : document.extraction_source ? (
+              <p className="mt-2 text-xs text-slate-500">
+                Extracted live by {document.model_name ?? document.extraction_source}.
+              </p>
+            ) : null}
             {document.error_code ? (
               <p className="mt-2 rounded-md bg-rose-50 p-2 text-xs text-rose-800">
                 Extraction failed: {document.error_code}

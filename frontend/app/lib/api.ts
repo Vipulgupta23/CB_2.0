@@ -63,6 +63,7 @@ export type DocumentRecord = {
   document_date: string | null;
   status: string;
   extraction_source: string | null;
+  model_name: string | null;
   error_code: string | null;
   fields: ExtractedField[];
 };

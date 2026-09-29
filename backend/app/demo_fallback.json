@@ -1,0 +1,253 @@
+{
+  "conflict_persona": {
+    "name": "Aarav Demo-Mehta",
+    "description": "Synthetic demo persona",
+    "documents": [
+      {
+        "original_filename": "01_will.pdf",
+        "document_type": "will",
+        "document_date": "2026-01-12",
+        "fields": [
+          {
+            "document_group_id": "1",
+            "asset_type": "bank_account",
+            "institution_name": "Sampurna Demo Bank Ltd.",
+            "asset_reference": "SB-DEMO-4821",
+            "named_person": "Anika Demo-Mehta",
+            "relationship": "daughter",
+            "mechanism_type": "bequest",
+            "share_percent": 100.0,
+            "source_text": "I give all my interest in the savings account at Sampurna Demo Bank Ltd., account reference SB-DEMO-4821, to my daughter Anika Demo-Mehta.",
+            "source_locator": "Clause 3.1",
+            "confidence": 1.0,
+            "registration_status": "unknown",
+            "registration_date": null,
+            "explicit_nomination_action": "none",
+            "policy_kind": "unknown",
+            "mwpa_section_6_applies": "unknown",
+            "assignment_status": "unknown"
+          },
+          {
+            "document_group_id": "2",
+            "asset_type": "insurance_policy",
+            "institution_name": "Aarohan Demo Life",
+            "asset_reference": "LIFE-DEMO-7710",
+            "named_person": "Anika Demo-Mehta",
+            "relationship": "daughter",
+            "mechanism_type": "bequest",
+            "share_percent": 100.0,
+            "source_text": "I give the proceeds attributable to Aarohan Demo Life policy reference LIFE-DEMO-7710 to my daughter Anika Demo-Mehta",
+            "source_locator": "Clause 3.2",
+            "confidence": 1.0,
+            "registration_status": "unknown",
+            "registration_date": null,
+            "explicit_nomination_action": "none",
+            "policy_kind": "life",
+            "mwpa_section_6_applies": "unknown",
+            "assignment_status": "unknown"
+          },
+          {
+            "document_group_id": "3",
+            "asset_type": "mutual_fund_folio",
+            "institution_name": "Nivesh Demo AMC",
+            "asset_reference": "MF-DEMO-2040",
+            "named_person": "Anika Demo-Mehta",
+            "relationship": "daughter",
+            "mechanism_type": "bequest",
+            "share_percent": 100.0,
+            "source_text": "I give all units in Nivesh Demo AMC folio reference MF-DEMO-2040 to my daughter Anika Demo-Mehta.",
+            "source_locator": "Clause 3.3",
+            "confidence": 1.0,
+            "registration_status": "unknown",
+            "registration_date": null,
+            "explicit_nomination_action": "none",
+            "policy_kind": "unknown",
+            "mwpa_section_6_applies": "unknown",
+            "assignment_status": "unknown"
+          }
+        ]
+      },
+      {
+        "original_filename": "02_bank_nomination.pdf",
+        "document_type": "bank_nomination",
+        "document_date": "2023-05-15",
+        "fields": [
+          {
+            "document_group_id": "1",
+            "asset_type": "bank_account",
+            "institution_name": "Sampurna Demo Bank Ltd.",
+            "asset_reference": "SB-DEMO-4821",
+            "named_person": "Kavya Demo-Mehta",
+            "relationship": "Spouse",
+            "mechanism_type": "nominee",
+            "share_percent": 100.0,
+            "source_text": "Kavya Demo-Mehta Spouse 100%",
+            "source_locator": "page 1, table row 1",
+            "confidence": 1.0,
+            "registration_status": "confirmed",
+            "registration_date": "2023-05-18",
+            "explicit_nomination_action": "none",
+            "policy_kind": "unknown",
+            "mwpa_section_6_applies": "unknown",
+            "assignment_status": "unknown"
+          }
+        ]
+      },
+      {
+        "original_filename": "03_insurance_nomination.pdf",
+        "document_type": "insurance_nomination",
+        "document_date": "2025-08-10",
+        "fields": [
+          {
+            "document_group_id": "1",
+            "asset_type": "insurance_policy",
+            "institution_name": "Aarohan Demo Life",
+            "asset_reference": "LIFE-DEMO-7710",
+            "named_person": "Anika Demo-Mehta",
+            "relationship": "Daughter",
+            "mechanism_type": "beneficiary_nominee",
+            "share_percent": 100.0,
+            "source_text": "Anika Demo-Mehta Daughter 100%",
+            "source_locator": "page 1, table row 1",
+            "confidence": 1.0,
+            "registration_status": "confirmed",
+            "registration_date": "2025-08-12",
+            "explicit_nomination_action": "none",
+            "policy_kind": "life",
+            "mwpa_section_6_applies": "false",
+            "assignment_status": "none"
+          }
+        ]
+      },
+      {
+        "original_filename": "04_mutual_fund_nomination.pdf",
+        "document_type": "mutual_fund_nomination",
+        "document_date": "2025-08-11",
+        "fields": [
+          {
+            "document_group_id": "1",
+            "asset_type": "mutual_fund_folio",
+            "institution_name": "Nivesh Demo AMC",
+            "asset_reference": "MF-DEMO-2040",
+            "named_person": "Anika Demo-Mehta",
+            "relationship": "Daughter",
+            "mechanism_type": "nominee",
+            "share_percent": 100.0,
+            "source_text": "Anika Demo-Mehta Daughter 100%",
+            "source_locator": "page 1, table row 1",
+            "confidence": 1.0,
+            "registration_status": "confirmed",
+            "registration_date": "2025-08-13",
+            "explicit_nomination_action": "none",
+            "policy_kind": "unknown",
+            "mwpa_section_6_applies": "unknown",
+            "assignment_status": "unknown"
+          }
+        ]
+      }
+    ]
+  },
+  "clean_persona": {
+    "name": "Rohan Demo-Sen",
+    "description": "Synthetic demo persona",
+    "documents": [
+      {
+        "original_filename": "01_will.pdf",
+        "document_type": "will",
+        "document_date": "2026-01-10",
+        "fields": [
+          {
+            "document_group_id": "1",
+            "asset_type": "bank_account",
+            "institution_name": "Sampurna Demo Bank Ltd.",
+            "asset_reference": "SB-DEMO-8120",
+            "named_person": "Mira Demo-Sen",
+            "relationship": "spouse",
+            "mechanism_type": "bequest",
+            "share_percent": null,
+            "source_text": "I give all my interest in the individual savings account at Sampurna Demo Bank Ltd., account reference SB-DEMO-8120, to my spouse Mira Demo-Sen.",
+            "source_locator": "page 1, clause 2.1",
+            "confidence": 1.0,
+            "registration_status": "unknown",
+            "registration_date": null,
+            "explicit_nomination_action": "none",
+            "policy_kind": "unknown",
+            "mwpa_section_6_applies": "unknown",
+            "assignment_status": "unknown"
+          },
+          {
+            "document_group_id": "2",
+            "asset_type": "insurance_policy",
+            "institution_name": "Aarohan Demo Life",
+            "asset_reference": "LIFE-DEMO-9912",
+            "named_person": "Mira Demo-Sen",
+            "relationship": "spouse",
+            "mechanism_type": "bequest",
+            "share_percent": null,
+            "source_text": "I give the proceeds attributable to Aarohan Demo Life policy reference LIFE-DEMO-9912 to my spouse Mira Demo-Sen",
+            "source_locator": "page 1, clause 2.2",
+            "confidence": 1.0,
+            "registration_status": "unknown",
+            "registration_date": null,
+            "explicit_nomination_action": "none",
+            "policy_kind": "life",
+            "mwpa_section_6_applies": "unknown",
+            "assignment_status": "unknown"
+          }
+        ]
+      },
+      {
+        "original_filename": "02_bank_nomination.pdf",
+        "document_type": "bank_nomination",
+        "document_date": "2025-09-20",
+        "fields": [
+          {
+            "document_group_id": "1",
+            "asset_type": "bank_account",
+            "institution_name": "Sampurna Demo Bank Ltd.",
+            "asset_reference": "SB-DEMO-8120",
+            "named_person": "Mira Demo-Sen",
+            "relationship": "Spouse",
+            "mechanism_type": "nominee",
+            "share_percent": 100.0,
+            "source_text": "Mira Demo-Sen Spouse 100%",
+            "source_locator": "page 1",
+            "confidence": 1.0,
+            "registration_status": "confirmed",
+            "registration_date": "2025-09-22",
+            "explicit_nomination_action": "none",
+            "policy_kind": "unknown",
+            "mwpa_section_6_applies": "unknown",
+            "assignment_status": "unknown"
+          }
+        ]
+      },
+      {
+        "original_filename": "03_insurance_nomination.pdf",
+        "document_type": "insurance_nomination",
+        "document_date": "2025-09-21",
+        "fields": [
+          {
+            "document_group_id": "1",
+            "asset_type": "insurance_policy",
+            "institution_name": "Aarohan Demo Life",
+            "asset_reference": "LIFE-DEMO-9912",
+            "named_person": "Mira Demo-Sen",
+            "relationship": "Spouse",
+            "mechanism_type": "beneficiary_nominee",
+            "share_percent": 100.0,
+            "source_text": "Mira Demo-Sen Spouse 100%",
+            "source_locator": "page 1, table row 1",
+            "confidence": 1.0,
+            "registration_status": "confirmed",
+            "registration_date": "2025-09-23",
+            "explicit_nomination_action": "none",
+            "policy_kind": "life",
+            "mwpa_section_6_applies": "false",
+            "assignment_status": "none"
+          }
+        ]
+      }
+    ]
+  }
+}
