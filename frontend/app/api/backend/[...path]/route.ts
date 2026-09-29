@@ -7,8 +7,10 @@
  * and is never sent to the browser. See docs/DEPLOYMENT.md.
  */
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
+import { resolveBackendUrl } from "../../../lib/backendUrl";
+
 const API_TOKEN = process.env.API_TOKEN ?? "";
+const BACKEND_URL = resolveBackendUrl(process.env.BACKEND_URL);
 
 function targetUrl(request: Request, segments: string[]): string {
   const query = new URL(request.url).search;

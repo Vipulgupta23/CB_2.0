@@ -142,3 +142,25 @@ def run_detection(persona_id: int) -> int:
         readiness_score=score,
     )
     return score
+
+
+def ensure_demo_seeded() -> dict[str, int]:
+    """Seed the fallback demo only if the database holds no personas yet.
+
+    Hosted free-tier instances have no persistent disk, so the SQLite file is lost on
+    every restart and cold start. This makes a fresh instance self-seeding instead of
+    presenting an empty vault. It never resets or overwrites existing data, and it never
+    calls the AI: the data it inserts is the pre-verified snapshot, still labelled
+    ``manual_fallback`` so the interface does not present it as a live extraction.
+    """
+    with get_connection() as connection:
+        existing = int(
+            connection.execute("SELECT COUNT(*) AS n FROM personas").fetchone()["n"]
+        )
+    if existing:
+        return {}
+
+    persona_ids = seed_fallback()
+    for persona_id in persona_ids.values():
+        run_detection(persona_id)
+    return persona_ids

@@ -37,9 +37,26 @@ def configured_api_token() -> str | None:
     return token or None
 
 
+def seed_on_startup_enabled() -> bool:
+    """Whether a fresh instance should seed the demo itself.
+
+    Hosted free-tier instances have no persistent disk, so the database is empty after
+    every cold start. Off by default so a local run never seeds behind your back.
+    """
+    return os.getenv("SEED_ON_STARTUP", "").strip().lower() == "true"
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     init_db()
+    if seed_on_startup_enabled():
+        from app.demo_seed import ensure_demo_seeded
+
+        seeded = ensure_demo_seeded()
+        logging.getLogger("jeevansetu").info(
+            "SEED_ON_STARTUP: %s",
+            f"seeded {len(seeded)} demo personas" if seeded else "database already seeded",
+        )
     yield
 
 

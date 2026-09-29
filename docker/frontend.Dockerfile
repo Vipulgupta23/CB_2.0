@@ -7,7 +7,12 @@ FROM node:24-alpine AS builder
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY frontend/ ./
-ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+# NEXT_PUBLIC_* values are compiled into the browser bundle, so this is a build argument
+# and not a runtime variable. The default is the same-origin proxy path, because a hosted
+# build must not point the browser at the backend directly, and because Render cannot
+# pass build arguments to a Docker build. docker-compose.yml overrides it with
+# http://localhost:8000 for the local demo.
+ARG NEXT_PUBLIC_API_URL=/api/backend
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
@@ -22,4 +27,5 @@ COPY --from=dependencies /app/node_modules ./node_modules
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+# Bind $PORT when the host assigns one, which Render does, otherwise the Compose port.
+CMD ["sh", "-c", "./node_modules/.bin/next start --port ${PORT:-3000}"]

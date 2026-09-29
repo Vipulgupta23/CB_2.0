@@ -73,3 +73,53 @@ def test_clean_persona_seed_has_no_findings(storage: None) -> None:
     assert run.scope_gaps == []
     assert run.readiness_score == 100
     assert run.disclaimer.startswith("Not legal advice.")
+
+
+def test_startup_seed_fills_an_empty_database_with_the_demo(storage: None) -> None:
+    """A hosted free-tier instance has no disk, so a cold start must seed itself."""
+    from app.demo_seed import ensure_demo_seeded
+
+    seeded = ensure_demo_seeded()
+
+    assert sorted(seeded) == sorted(PERSONA_KEYS)
+    scores = {
+        key: get_latest_detection_run(persona_id).readiness_score
+        for key, persona_id in seeded.items()
+    }
+    assert scores == {"conflict_persona": 75, "clean_persona": 100}
+
+
+def test_startup_seed_leaves_an_already_seeded_database_alone(storage: None) -> None:
+    """It must never duplicate personas or wipe an edit someone just demonstrated."""
+    from app.demo_seed import ensure_demo_seeded
+
+    ensure_demo_seeded()
+    with get_connection() as connection:
+        connection.execute(
+            "UPDATE extracted_fields SET person_name = 'Edited Person', is_user_edited = 1"
+            " WHERE id = (SELECT MIN(id) FROM extracted_fields)"
+        )
+
+    second_run = ensure_demo_seeded()
+
+    with get_connection() as connection:
+        personas = connection.execute("SELECT COUNT(*) AS n FROM personas").fetchone()["n"]
+        edited = connection.execute(
+            "SELECT COUNT(*) AS n FROM extracted_fields WHERE person_name = 'Edited Person'"
+        ).fetchone()["n"]
+
+    assert second_run == {}
+    assert personas == len(PERSONA_KEYS)
+    assert edited == 1
+
+
+def test_startup_seed_is_opt_in(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Off by default, so a local run never seeds behind your back."""
+    from app.main import seed_on_startup_enabled
+
+    monkeypatch.delenv("SEED_ON_STARTUP", raising=False)
+    assert seed_on_startup_enabled() is False
+    monkeypatch.setenv("SEED_ON_STARTUP", "false")
+    assert seed_on_startup_enabled() is False
+    monkeypatch.setenv("SEED_ON_STARTUP", "TRUE")
+    assert seed_on_startup_enabled() is True

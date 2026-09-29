@@ -68,14 +68,15 @@ docker compose exec backend python scripts/seed_demo.py --yes --mode live
 
 **Known limitations, recorded not hidden**
 
-- Nothing here is deployed. The token gate and the server-side proxy are built and tested, but no hosting, TLS, or managed storage exists.
+- `render.yaml` describes a complete Render deployment and the wiring has been rehearsed in containers, but no live instance exists yet. On Render's free plan there is no persistent disk, so uploads and edits do not survive a restart and the demo reseeds itself on each cold start.
+- The hosted access control is one shared username and password, not user accounts.
 - `holding_pattern` of `unknown` is treated as in scope, so a jointly held asset that does not state its holding pattern can still be reported as a conflict (`backend/rules/RULES.md` section 14).
 - The Gemini free tier may use submitted content to improve Google's products, which is why only synthetic documents are permitted.
 - Gap markers (`GAP-*`) are engine labels for cases the rules exclude. They are not approved legal rules.
 - Frontend tests cover the three components that carry the safety-critical labels, not the pages or the proxy route.
 - No seed document is a joint holding, so `GAP-JOINT-HOLDING` and its amber vault badge cannot be reached by clicking through the shipped demo. Both are covered by backend and component tests. Adding a joint-holding document would change the headline demo score, so it was left out.
 - Leaving rule scope raises the score, because a gap deducts 3 where a conflict deducts 25 (`backend/rules/RULES.md` section 14). A gap never means the asset is fine.
-- The `API_TOKEN` gate is one shared secret, not authentication, and the frontend proxy relays anonymously. A published frontend still needs access control in front of it; see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+- The `API_TOKEN` gate is one shared secret, not authentication. The frontend credential covers the proxy, so a hosted instance is not an open relay, but neither gate identifies a caller; see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## The rule set and its sources
 
@@ -121,10 +122,13 @@ Copy `.env.example` to `.env`. Never commit a real key.
 | `MAX_UPLOAD_BYTES` | `10485760` | Per-document upload limit |
 | `CORS_ORIGINS` | `http://localhost:3000` | Browser origin allowlist |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | API URL compiled into the browser bundle |
-| `API_TOKEN` | empty | Optional shared bearer token. Empty leaves the API open, which is correct on loopback only |
-| `BACKEND_URL` | `http://backend:8000` | Backend address used by the frontend proxy route when `NEXT_PUBLIC_API_URL` is `/api/backend` |
+| `API_TOKEN` | empty | Shared bearer token for the API. Empty leaves it open, which is correct on loopback only |
+| `BACKEND_URL` | `http://backend:8000` | Backend address used by the frontend proxy route. A bare hostname is treated as `https://` |
+| `BASIC_AUTH_USER`, `BASIC_AUTH_PASSWORD` | empty | Shared credential for a hosted frontend, checked on every request including the proxy |
+| `PUBLIC_DEPLOYMENT` | empty | `true` makes the frontend refuse traffic if the credential above is missing |
+| `SEED_ON_STARTUP` | empty | `true` seeds the demo when the database comes up empty, for hosts with no persistent disk |
 
-Hosting this anywhere other than loopback needs both `API_TOKEN` and the proxy wiring. [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) is the runbook and states plainly what is not done.
+[`render.yaml`](render.yaml) is a working Render Blueprint for this stack, and [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) is the runbook: what each setting is for, what was verified, and what has not been.
 
 ## API
 
@@ -147,14 +151,14 @@ Hosting this anywhere other than loopback needs both `API_TOKEN` and the proxy w
 cd backend
 python3 -m venv .venv
 .venv/bin/python -m pip install --requirement requirements.txt
-.venv/bin/python -m pytest              # 120 tests
+.venv/bin/python -m pytest              # 131 tests
 .venv/bin/uvicorn app.main:app --reload
 ```
 
 ```bash
 cd frontend
 npm ci
-npm test                                # 19 component tests, Vitest + Testing Library
+npm test                                # 31 tests, Vitest + Testing Library
 npm run lint && npm run build
 npm run dev
 ```
@@ -181,7 +185,7 @@ cd backend
 backend/app/       FastAPI app, rules engine, scoring, extraction, schema
 backend/rules/     RULES.md — the authoritative rule set and its sources
 backend/scripts/   demo seed and live verification scripts
-backend/tests/     120 backend tests
+backend/tests/     131 backend tests
 frontend/          Next.js results UI, vault, and the deployment proxy route
 seed_data/         synthetic demo documents, sources, and expected outcomes
 docs/              PRD, pitch talking points, and the deployment runbook

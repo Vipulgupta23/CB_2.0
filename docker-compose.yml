@@ -10,6 +10,8 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       # Empty by default: the loopback demo runs with no token. See docs/DEPLOYMENT.md.
       API_TOKEN: ${API_TOKEN:-}
+      # Empty locally: seed explicitly with scripts/seed_demo.py instead.
+      SEED_ON_STARTUP: ${SEED_ON_STARTUP:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite}
     ports:
@@ -38,6 +40,10 @@ services:
       # Used only when NEXT_PUBLIC_API_URL is set to /api/backend for a hosted deployment.
       BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
       API_TOKEN: ${API_TOKEN:-}
+      # Empty locally, so the shared-credential gate stays inert. See docs/DEPLOYMENT.md.
+      BASIC_AUTH_USER: ${BASIC_AUTH_USER:-}
+      BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD:-}
+      PUBLIC_DEPLOYMENT: ${PUBLIC_DEPLOYMENT:-}
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
