@@ -4,7 +4,7 @@ Date: 2026-09-29
 
 Status: Complete; awaiting user review
 
-Implementation commit: `PENDING_FIRST_COMMIT`
+Implementation commit: `569c6c2972e95d75fb0d1f7e03af3d8218bff8d1`
 
 Completion tag: `phase-3-done`
 
