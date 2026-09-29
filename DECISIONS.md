@@ -300,3 +300,37 @@ This is a dated, append-only project log. Legal-rule entries must identify a pub
 **Decision:** Verify the UI with ESLint, a production build, rendered-DOM assertions, and a screenshot instead of adding a JavaScript test framework now.
 
 **Reasoning:** Adding a second test toolchain is scope the hackathon does not need yet. This is recorded as a gap rather than presented as covered.
+
+## 2026-09-29 — Phase 6
+
+### D-048 — Phase 5 approved; Phase 6 unlocked
+
+**Decision:** The user supplied `APPROVED PHASE 5`. Phase 6 may polish the demo; Phase 7 remains blocked.
+
+### D-049 — Pre-demo source re-check outcome
+
+**Decision:** Re-verified all five primary sources on 2026-09-29. Every link returns HTTP 200. SEBI's March 2026 publication is still a consultation paper containing a draft circular with a placeholder number, so `SRC-MF-01` (the 28 February 2025 circular) remains operative and `rules_version` stays `1.0.0-candidate`.
+
+**Reasoning:** `RULES.md` section 11 requires a re-check before the demo freeze and forbids sourcing a rule from a draft.
+
+### D-050 — Pre-verified fallback seed is labelled, never disguised
+
+**Decision:** The default seed mode inserts a snapshot of previously verified live Gemini extraction, stores `extraction_source='manual_fallback'`, and the vault displays "Pre-verified fallback data, not a live AI extraction". A `--mode live` option performs real extraction.
+
+**Reasoning:** PRD section 8 calls for a pre-verified fallback against a live API hiccup, and the non-negotiable principles forbid presenting anything as more real than it is. The fallback also lets a fresh clone demo without an API key.
+
+### D-051 — Demo reset requires explicit confirmation
+
+**Decision:** `scripts/seed_demo.py` refuses to run without `--yes` because it deletes the generated synthetic database and uploads.
+
+**Reasoning:** The deletion is destructive even though the data is synthetic and gitignored.
+
+### D-052 — Sanitized global error handler
+
+**Decision:** Unhandled server exceptions return a fixed `internal_error` payload and log only the exception type. Document text, model payloads, and stack details are never returned to the client.
+
+### D-053 — No cloud deployment in this build
+
+**Decision:** Skip the optional live deployment. The demo runs on local Docker Compose bound to loopback.
+
+**Reasoning:** The API is unauthenticated and holds a provider key. D-022 requires access controls and a data-handling review before any public exposure, which is out of scope for this hackathon. Recorded as not done rather than partially attempted.

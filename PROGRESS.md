@@ -9,8 +9,8 @@ Last updated: 2026-09-29
 - [x] **Phase 2 — Document upload and AI extraction:** approved by user on 2026-09-29.
 - [x] **Phase 3 — Synthetic demo documents:** approved by user on 2026-09-29.
 - [x] **Phase 4 — Deterministic conflict detection engine:** approved by user on 2026-09-29.
-- [x] **Phase 5 — Readiness score and results UI:** full flow verified live including score improvement; awaiting user review.
-- [ ] **Phase 6 — Polish and demo readiness**
+- [x] **Phase 5 — Readiness score and results UI:** approved by user on 2026-09-29.
+- [x] **Phase 6 — Polish and demo readiness:** fresh clone reproduces the demo in 96s; awaiting user review.
 - [ ] **Phase 7 — Stretch concept/future estate-case view**
 
 ## Phase 0 checklist
@@ -112,8 +112,25 @@ Last updated: 2026-09-29
 - [x] Pass frontend lint and production build.
 - [x] Verify the live flow: upload, extract, conflicts, score 75, fix, re-run, score 100.
 - [x] Write Phase 5 decisions and completion report.
-- [ ] User review and exact approval phrase: `APPROVED PHASE 5`.
+- [x] User approval received: `APPROVED PHASE 5`.
+
+## Phase 6 checklist
+
+- [x] Re-verify all five primary legal sources before the demo freeze.
+- [x] Confirm the SEBI March 2026 consultation is still a draft and source no rule from it.
+- [x] Add a demo reset and seed script with live and fallback modes.
+- [x] Label fallback data in the UI as not a live AI extraction.
+- [x] Require explicit confirmation before resetting synthetic storage.
+- [x] Add a sanitized global error handler.
+- [x] Verify the disclaimer on every result surface and payload.
+- [x] Finalize the README with sources, real-versus-simplified, and the demo script.
+- [x] Write the pitch talking-points document.
+- [x] Pass 95 backend tests locally and in Docker.
+- [x] Pass frontend lint and production build.
+- [x] Reproduce the full demo from a fresh clone in 96 seconds without an API key.
+- [x] Write Phase 6 decisions and completion report.
+- [ ] User review and exact approval phrase: `APPROVED PHASE 6`.
 
 ## Phase boundary
 
-No demo-reset seed script, deployment, pitch document, or Section 5.6 stretch view has been started. Phase 6 must not begin before exact Phase 5 approval.
+The Section 5.6 stretch estate-case view has not been started. Phase 7 must not begin before exact Phase 6 approval, and only if the core demo stays polished.
