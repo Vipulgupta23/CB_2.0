@@ -21,6 +21,7 @@ from app.models import (
     PersonaCreate,
     PersonaRead,
 )
+from app.scoring import breakdown_from_pairs
 from app.uploads import ValidatedUpload
 
 
@@ -272,6 +273,7 @@ def get_document(document_id: int) -> DocumentRead:
         classification_confidence=raw_result.get("classification_confidence"),
         warnings=raw_result.get("warnings", []),
         fields=fields,
+        disclaimer=DISCLAIMER,
     )
 
 
@@ -366,6 +368,7 @@ def load_field_records(persona_id: int) -> list[FieldRecord]:
 def save_detection_run(
     persona_id: int,
     findings: list[tuple[Finding, tuple[str | None, str | None, str | None] | None]],
+    readiness_score: int | None = None,
 ) -> int:
     """Persist one detection run and its findings.
 
@@ -376,8 +379,11 @@ def save_detection_run(
     with get_connection() as connection:
         run_id = int(
             connection.execute(
-                "INSERT INTO detection_runs (persona_id, rules_version) VALUES (?, ?)",
-                (persona_id, RULES_VERSION),
+                """
+                INSERT INTO detection_runs (persona_id, rules_version, readiness_score)
+                VALUES (?, ?, ?)
+                """,
+                (persona_id, RULES_VERSION, readiness_score),
             ).lastrowid
         )
         for finding, explanation in findings:
@@ -471,11 +477,15 @@ def get_detection_run(run_id: int) -> DetectionRunRead:
         ).fetchall()
 
     findings = [_finding_row_to_read(row) for row in rows]
+    breakdown = breakdown_from_pairs(
+        (finding["finding_type"], finding["severity"]) for finding in findings
+    )
     return DetectionRunRead(
         id=run["id"],
         persona_id=run["persona_id"],
         rules_version=run["rules_version"],
         readiness_score=run["readiness_score"],
+        score_breakdown=breakdown,
         run_at=run["run_at"],
         disclaimer=DISCLAIMER,
         conflicts=[f for f in findings if f["finding_type"] != "scope_gap"],
@@ -493,3 +503,69 @@ def get_latest_detection_run(persona_id: int) -> DetectionRunRead:
     if row is None:
         raise RecordNotFoundError(f"No detection run exists for persona {persona_id}")
     return get_detection_run(int(row["id"]))
+
+
+def list_personas() -> list[PersonaRead]:
+    with get_connection() as connection:
+        ids = [
+            int(row["id"])
+            for row in connection.execute("SELECT id FROM personas ORDER BY id")
+        ]
+    return [get_persona(persona_id) for persona_id in ids]
+
+
+def update_extracted_field(
+    field_id: int,
+    *,
+    named_person: str | None = None,
+    relationship: str | None = None,
+) -> tuple[int, int]:
+    """Apply a simulated synthetic correction; return (persona_id, document_id)."""
+    updates: list[str] = []
+    values: list[Any] = []
+    if named_person is not None:
+        updates.append("person_name = ?")
+        values.append(named_person.strip())
+    if relationship is not None:
+        updates.append("relationship = ?")
+        values.append(relationship.strip())
+    if not updates:
+        raise ValueError("No field values were supplied")
+
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT d.persona_id AS persona_id, f.document_id AS document_id
+            FROM extracted_fields AS f
+            JOIN documents AS d ON d.id = f.document_id
+            WHERE f.id = ?
+            """,
+            (field_id,),
+        ).fetchone()
+        if row is None:
+            raise RecordNotFoundError(f"Extracted field {field_id} not found")
+
+        connection.execute(
+            f"""
+            UPDATE extracted_fields
+            SET {", ".join(updates)},
+                is_user_edited = 1,
+                updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+            WHERE id = ?
+            """,
+            (*values, field_id),
+        )
+        return int(row["persona_id"]), int(row["document_id"])
+
+
+def has_user_edited_fields(document_id: int) -> bool:
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT COUNT(*) AS edited
+            FROM extracted_fields
+            WHERE document_id = ? AND is_user_edited = 1
+            """,
+            (document_id,),
+        ).fetchone()
+    return bool(row["edited"])

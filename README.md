@@ -156,3 +156,15 @@ The deterministic engine lives in `backend/app/detection.py` and is the only pla
 Each finding carries the rule ID, rules version, finding type, severity, both sources with locators and exact source text, a deterministic summary, a legal scope note, suggested actions, and the mandatory disclaimer. Cases the rules exclude are returned as `GAP-*` scope gaps, never as conflicts. See `backend/rules/RULES.md` sections 12 and 13 for gap markers, the documented relationship normalization, and the recorded joint-holding limitation.
 
 On the Phase 3 demo data the engine reports exactly one `BANK-WILL-001` conflict for the conflict persona and nothing for the clean persona. Readiness scoring arrives in Phase 5.
+
+## Phase 5 readiness score and results UI
+
+Open http://localhost:3000, pick a demo persona, and press "Run detection".
+
+- **Score card** — Continuity Readiness Score with the arithmetic shown: 100 minus 25 per high finding, 10 per medium, and 3 per review gap, clamped to 0-100. Conflicts and gaps are counted separately by finding type.
+- **Finding cards** — highest review priority first, each showing source A versus source B with locators and the originally extracted text, the plain-language explanation when available, a suggested fix, the documented next steps, the legal scope limit, and the mandatory disclaimer.
+- **Vault** — every uploaded synthetic document with its extracted fields. "Simulate a fix" edits only the extracted synthetic value, marks it as edited, and leaves the source quote intact. Re-run detection to see the score change.
+
+Demo flow: the conflict persona scores 75 with one `BANK-WILL-001` conflict. Change the bank nominee to the person named in the will, re-run detection, and the score rises to 100 with no conflicts.
+
+The score is a review-priority indicator for synthetic documents. It is not a legal, financial, or completeness guarantee.

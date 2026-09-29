@@ -5,7 +5,7 @@ import asyncio
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 
-from app.detection import SCOPE_GAP, detect
+from app.detection import SCOPE_GAP, detect, finalize
 from app.explanations import ExplanationError, generate_explanation
 from app.extraction import ExtractionError, extract_document
 from app.models import (
@@ -13,9 +13,12 @@ from app.models import (
     DocumentListRead,
     DocumentRead,
     ExtractionFailureRead,
+    FieldUpdate,
     PersonaCreate,
+    PersonaListRead,
     PersonaRead,
 )
+from app.scoring import completeness_gaps, readiness_score
 from app.repository import (
     ExtractionInProgressError,
     RecordNotFoundError,
@@ -26,13 +29,16 @@ from app.repository import (
     get_document_storage,
     get_latest_detection_run,
     get_persona,
+    has_user_edited_fields,
     list_documents,
+    list_personas,
     load_field_records,
     load_persona_context,
     mark_extraction_failed,
     mark_extracting,
     save_detection_run,
     save_extraction,
+    update_extracted_field,
 )
 from app.uploads import (
     UploadValidationError,
@@ -189,8 +195,26 @@ async def upload_synthetic_document(
     responses={503: {"model": ExtractionFailureRead}},
     tags=["documents"],
 )
-async def retry_document_extraction(document_id: int) -> DocumentRead | JSONResponse:
-    """Retry Gemini extraction using the already-stored synthetic upload."""
+async def retry_document_extraction(
+    document_id: int,
+    force: bool = False,
+) -> DocumentRead | JSONResponse:
+    """Retry Gemini extraction using the already-stored synthetic upload.
+
+    Re-extraction replaces every extracted field for the document, which would discard
+    simulated fixes. That requires an explicit ``force=true``.
+    """
+    if not force and has_user_edited_fields(document_id):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "user_edits_would_be_discarded",
+                "message": (
+                    "This document has simulated fixes. Re-extraction would replace them. "
+                    "Repeat with force=true to discard the fixes."
+                ),
+            },
+        )
     try:
         storage_key, mime_type = get_document_storage(document_id)
         content = load_upload(storage_key)
@@ -244,9 +268,13 @@ async def run_conflict_detection(
         raise not_found(exc) from exc
 
     result = detect(records, context)
+    all_findings = finalize(
+        result.findings + completeness_gaps(records, result.findings)
+    )
+    score = readiness_score(all_findings)
     explained_budget = MAX_EXPLAINED_FINDINGS
     paired: list[tuple[object, tuple[str | None, str | None, str | None] | None]] = []
-    for finding in result.findings:
+    for finding in all_findings:
         explanation: tuple[str | None, str | None, str | None] | None = None
         if explain and finding.finding_type != SCOPE_GAP and explained_budget > 0:
             explained_budget -= 1
@@ -261,7 +289,7 @@ async def run_conflict_detection(
                 explanation = (None, None, "unavailable")
         paired.append((finding, explanation))
 
-    run_id = save_detection_run(persona_id, paired)  # type: ignore[arg-type]
+    run_id = save_detection_run(persona_id, paired, readiness_score=score)  # type: ignore[arg-type]
     return get_detection_run(run_id)
 
 
@@ -273,5 +301,40 @@ async def run_conflict_detection(
 def read_latest_detection(persona_id: int) -> DetectionRunRead:
     try:
         return get_latest_detection_run(persona_id)
+    except RecordNotFoundError as exc:
+        raise not_found(exc) from exc
+
+
+@router.get("/personas", response_model=PersonaListRead, tags=["personas"])
+def read_personas() -> PersonaListRead:
+    return PersonaListRead(personas=list_personas())
+
+
+@router.patch(
+    "/fields/{field_id}",
+    response_model=DocumentRead,
+    tags=["documents"],
+)
+def apply_simulated_fix(field_id: int, payload: FieldUpdate) -> DocumentRead:
+    """Apply a synthetic correction to one extracted field.
+
+    This edits the extracted synthetic record only. It does not change any uploaded
+    document and has no effect on any real institution.
+    """
+    if payload.named_person is None and payload.relationship is None:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "no_field_values",
+                "message": "Provide named_person or relationship to apply a fix.",
+            },
+        )
+    try:
+        _, document_id = update_extracted_field(
+            field_id,
+            named_person=payload.named_person,
+            relationship=payload.relationship,
+        )
+        return get_document(document_id)
     except RecordNotFoundError as exc:
         raise not_found(exc) from exc

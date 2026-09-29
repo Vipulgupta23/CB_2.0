@@ -897,6 +897,21 @@ def _near_miss_gaps(records: list[FieldRecord]) -> list[Finding]:
 SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 
 
+def finalize(findings: list[Finding]) -> list[Finding]:
+    """Deduplicate and order any finding list, including later-stage additions."""
+    deduped: dict[tuple, Finding] = {}
+    for finding in findings:
+        deduped.setdefault(_dedupe_key(finding), finding)
+    return sorted(
+        deduped.values(),
+        key=lambda f: (
+            SEVERITY_ORDER[f.severity],
+            f.rule_id,
+            normalize_text(f.asset_reference),
+        ),
+    )
+
+
 def detect(records: list[FieldRecord], context: PersonaContext) -> DetectionResult:
     """Apply every approved rule in the documented order."""
     findings: list[Finding] = []
@@ -918,16 +933,4 @@ def detect(records: list[FieldRecord], context: PersonaContext) -> DetectionResu
     findings.extend(_missing_reference_gaps(records))
     findings.extend(_near_miss_gaps(records))
 
-    deduped: dict[tuple, Finding] = {}
-    for finding in findings:
-        deduped.setdefault(_dedupe_key(finding), finding)
-
-    ordered = sorted(
-        deduped.values(),
-        key=lambda f: (
-            SEVERITY_ORDER[f.severity],
-            f.rule_id,
-            normalize_text(f.asset_reference),
-        ),
-    )
-    return DetectionResult(findings=ordered)
+    return DetectionResult(findings=finalize(findings))

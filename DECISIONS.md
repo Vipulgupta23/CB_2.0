@@ -246,3 +246,57 @@ This is a dated, append-only project log. Legal-rule entries must identify a pub
 **Decision:** At most 10 findings per detection run receive a model-generated explanation. Remaining findings still return complete deterministic content.
 
 **Reasoning:** Bounds free-tier usage and request duration on an unauthenticated local endpoint.
+
+## 2026-09-29 — Phase 5
+
+### D-039 — Phase 4 approved; Phase 5 unlocked
+
+**Decision:** The user supplied `APPROVED PHASE 4`. Phase 5 may add scoring and the results UI; Phase 6 remains blocked.
+
+### D-040 — Deterministic score formula
+
+**Decision:** Continuity Readiness Score = 100 − (25 × high findings) − (10 × medium findings) − (3 × gaps), clamped to 0-100. The API returns a breakdown so the subtraction is visible in the UI.
+
+**Reasoning:** The score must be explainable and reproducible without an AI call. The weights are a review-priority heuristic, not a legal or actuarial measure, and the UI says so.
+
+### D-041 — Missing nomination is a Phase 5 completeness gap
+
+**Decision:** A will-assigned asset with no uploaded nomination emits `GAP-MISSING-NOMINATION` as a `scope_gap` at low severity, never as a conflict.
+
+**Reasoning:** `RULES.md` section 9 explicitly classifies a missing nomination as a Phase 5 completeness gap rather than a Phase 4 conflict.
+
+### D-042 — Completeness gaps pass through the engine's dedupe and ordering
+
+**Decision:** The route merges engine findings with completeness gaps and runs the shared `finalize()` pass. A bequest already covered by `GAP-ASSET-NEAR-MATCH` does not also produce `GAP-MISSING-NOMINATION`.
+
+**Reasoning:** Review found that concatenating outside the dedupe double-deducted and produced a card falsely stating no nomination was uploaded when one was.
+
+### D-043 — Conflicts and gaps are separated by finding type, not severity
+
+**Decision:** The score breakdown counts conflicts and gaps by `finding_type`, and reports high, medium, and low conflict counts separately from gaps.
+
+**Reasoning:** A severity-based split displayed a validity warning as a conflict and would display any future low-severity conflict as a review gap.
+
+### D-044 — Simulated fixes never touch source evidence
+
+**Decision:** `PATCH /fields/{id}` changes only the extracted `person_name` or `relationship` and sets `is_user_edited`. The uploaded file, `source_text`, `source_locator`, confidence, and raw extraction payload are untouched. The UI labels the quote as the original extracted text and states that no real institution record changes.
+
+**Known limitation:** there is no undo. Re-running extraction restores the extracted value from the stored synthetic document.
+
+### D-045 — Extraction retry will not silently discard simulated fixes
+
+**Decision:** Retrying extraction on a document with user-edited fields returns HTTP 409 unless `force=true` is supplied.
+
+**Reasoning:** Re-extraction replaces every extracted row for the document, which would erase a demonstrated fix without warning.
+
+### D-046 — Null scores are shown honestly
+
+**Decision:** A detection run recorded before scoring existed has a null score, and the UI shows an explicit "not scored, re-run detection" state rather than rendering zero.
+
+**Reasoning:** Coercing null to zero showed the clean persona as the worst possible result next to a no-conflict panel.
+
+### D-047 — No frontend test runner in this phase
+
+**Decision:** Verify the UI with ESLint, a production build, rendered-DOM assertions, and a screenshot instead of adding a JavaScript test framework now.
+
+**Reasoning:** Adding a second test toolchain is scope the hackathon does not need yet. This is recorded as a gap rather than presented as covered.

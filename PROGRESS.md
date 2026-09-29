@@ -8,8 +8,8 @@ Last updated: 2026-09-29
 - [x] **Phase 1 — Legal rule research:** approved by user on 2026-09-29.
 - [x] **Phase 2 — Document upload and AI extraction:** approved by user on 2026-09-29.
 - [x] **Phase 3 — Synthetic demo documents:** approved by user on 2026-09-29.
-- [x] **Phase 4 — Deterministic conflict detection engine:** all seven rules implemented and verified live; awaiting user review.
-- [ ] **Phase 5 — Readiness score and results UI**
+- [x] **Phase 4 — Deterministic conflict detection engine:** approved by user on 2026-09-29.
+- [x] **Phase 5 — Readiness score and results UI:** full flow verified live including score improvement; awaiting user review.
 - [ ] **Phase 6 — Polish and demo readiness**
 - [ ] **Phase 7 — Stretch concept/future estate-case view**
 
@@ -94,8 +94,26 @@ Last updated: 2026-09-29
 - [x] Pass 72 tests locally and in Docker.
 - [x] Verify live: exactly one `BANK-WILL-001` for the conflict persona, nothing for the clean persona.
 - [x] Write Phase 4 decisions and completion report.
-- [ ] User review and exact approval phrase: `APPROVED PHASE 4`.
+- [x] User approval received: `APPROVED PHASE 4`.
+
+## Phase 5 checklist
+
+- [x] Add a deterministic, explainable readiness score with a visible breakdown.
+- [x] Flag a will-assigned asset with no nomination as a completeness gap, not a conflict.
+- [x] Separate conflicts from gaps by finding type in the breakdown.
+- [x] Persist the score on each detection run.
+- [x] Add persona listing and a simulated field-fix endpoint.
+- [x] Refuse to discard simulated fixes on extraction retry without an explicit force.
+- [x] Build the results view with score and severity-ordered finding cards.
+- [x] Show source A versus source B, explanation, fix, actions, scope note, and disclaimer.
+- [x] Build the vault with document list, inline fix editing, and re-run.
+- [x] Fix both demo-path defects found by semantic review.
+- [x] Pass 90 backend tests locally and in Docker.
+- [x] Pass frontend lint and production build.
+- [x] Verify the live flow: upload, extract, conflicts, score 75, fix, re-run, score 100.
+- [x] Write Phase 5 decisions and completion report.
+- [ ] User review and exact approval phrase: `APPROVED PHASE 5`.
 
 ## Phase boundary
 
-No readiness score, results UI, vault, or simulated fix flow has been started. Phase 5 must not begin before exact Phase 4 approval.
+No demo-reset seed script, deployment, pitch document, or Section 5.6 stretch view has been started. Phase 6 must not begin before exact Phase 5 approval.

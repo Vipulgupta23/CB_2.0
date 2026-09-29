@@ -165,7 +165,9 @@ def test_conflict_persona_yields_exactly_the_expected_bank_conflict(
     assert conflict["disclaimer"] == DISCLAIMER
     assert conflict["explanation_source"] == "gemini"
     assert conflict["suggested_actions"]
-    assert run["readiness_score"] is None
+    assert run["readiness_score"] == 75
+    assert run["score_breakdown"]["high_conflicts"] == 1
+    assert run["score_breakdown"]["deduction"] == 25
     assert run["disclaimer"] == DISCLAIMER
 
 
@@ -180,6 +182,7 @@ def test_clean_persona_yields_no_conflict(
 
     assert run["conflicts"] == []
     assert run["scope_gaps"] == []
+    assert run["readiness_score"] == 100
     assert run["disclaimer"] == DISCLAIMER
 
 
@@ -242,3 +245,178 @@ def test_detection_requires_an_existing_persona(database: None) -> None:
                 return response.status_code
 
     assert asyncio.run(scenario()) == 404
+
+
+def test_simulated_fix_raises_the_score_and_clears_the_conflict(
+    database: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stub_explanation(monkeypatch)
+    persona_id = seed_persona("conflict_persona")
+
+    async def scenario() -> tuple[dict, dict, dict]:
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                before = (await client.post(f"/personas/{persona_id}/detections")).json()
+
+                bank_field_id = before["conflicts"][0]["source_a"]["field_id"]
+                will_person = before["conflicts"][0]["source_b"]["text"].split(" (")[0]
+                patched = await client.patch(
+                    f"/fields/{bank_field_id}",
+                    json={"named_person": will_person},
+                )
+                assert patched.status_code == 200
+
+                after = (await client.post(f"/personas/{persona_id}/detections")).json()
+                return before, patched.json(), after
+
+    before, patched_document, after = asyncio.run(scenario())
+
+    assert before["readiness_score"] == 75
+    assert [f["rule_id"] for f in before["conflicts"]] == ["BANK-WILL-001"]
+    assert any(field["is_user_edited"] for field in patched_document["fields"])
+    assert after["conflicts"] == []
+    assert after["readiness_score"] == 100
+    assert after["readiness_score"] > before["readiness_score"]
+
+
+def test_missing_nomination_lowers_the_score_as_a_completeness_gap(
+    database: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stub_explanation(monkeypatch)
+    persona_id = seed_persona("clean_persona")
+
+    with get_connection() as connection:
+        document_id = int(
+            connection.execute(
+                "SELECT id FROM documents WHERE persona_id = ? ORDER BY id LIMIT 1",
+                (persona_id,),
+            ).fetchone()["id"]
+        )
+        connection.execute(
+            """
+            INSERT INTO extracted_fields (
+                document_id, document_group_id, asset_type, institution_name,
+                asset_reference, person_name, relationship, mechanism,
+                source_text, source_locator, confidence, registration_status,
+                explicit_nomination_action, policy_kind,
+                mwpa_section_6_applies, assignment_status
+            ) VALUES (?, '2', 'mutual_fund_folio', 'Nivesh Demo AMC', 'MF-DEMO-9999',
+                      'Mira Demo-Sen', 'spouse', 'bequest',
+                      'I give folio MF-DEMO-9999 to my spouse Mira Demo-Sen.',
+                      'clause 2.3', 1.0, 'unknown', 'none', 'unknown', 'unknown', 'unknown')
+            """,
+            (document_id,),
+        )
+
+    run = run_detection(persona_id)
+
+    assert run["conflicts"] == []
+    assert [g["rule_id"] for g in run["scope_gaps"]] == ["GAP-MISSING-NOMINATION"]
+    assert run["readiness_score"] == 97
+
+
+def test_persona_list_is_available_for_the_ui(
+    database: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seed_persona("conflict_persona")
+    seed_persona("clean_persona")
+
+    async def scenario() -> dict:
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get("/personas")
+                assert response.status_code == 200
+                return response.json()
+
+    payload = asyncio.run(scenario())
+
+    assert [persona["name"] for persona in payload["personas"]] == [
+        "Aarav Demo-Mehta",
+        "Rohan Demo-Sen",
+    ]
+
+
+def test_field_fix_requires_a_value_and_an_existing_field(
+    database: None,
+) -> None:
+    async def scenario() -> tuple[int, int]:
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                empty = await client.patch("/fields/1", json={})
+                missing = await client.patch("/fields/999", json={"named_person": "X"})
+                return empty.status_code, missing.status_code
+
+    empty_status, missing_status = asyncio.run(scenario())
+
+    assert empty_status == 400
+    assert missing_status == 404
+
+
+def test_extraction_retry_refuses_to_discard_a_simulated_fix(
+    database: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stub_explanation(monkeypatch)
+    persona_id = seed_persona("conflict_persona")
+
+    async def scenario() -> tuple[int, dict]:
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                documents = (await client.get(f"/personas/{persona_id}/documents")).json()
+                bank = next(
+                    document
+                    for document in documents["documents"]
+                    if document["document_type"] == "bank_nomination"
+                )
+                field_id = bank["fields"][0]["id"]
+                await client.patch(f"/fields/{field_id}", json={"named_person": "Fixed Person"})
+                blocked = await client.post(f"/documents/{bank['id']}/extract")
+                return blocked.status_code, blocked.json()
+
+    status_code, payload = asyncio.run(scenario())
+
+    assert status_code == 409
+    assert payload["detail"]["code"] == "user_edits_would_be_discarded"
+
+
+def test_document_response_carries_the_disclaimer(
+    database: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stub_explanation(monkeypatch)
+    persona_id = seed_persona("clean_persona")
+
+    async def scenario() -> dict:
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                documents = (await client.get(f"/personas/{persona_id}/documents")).json()
+                field_id = documents["documents"][0]["fields"][0]["id"]
+                patched = await client.patch(
+                    f"/fields/{field_id}",
+                    json={"relationship": "spouse"},
+                )
+                assert patched.status_code == 200
+                return patched.json()
+
+    document = asyncio.run(scenario())
+
+    assert document["disclaimer"] == DISCLAIMER
+    assert any(field["is_user_edited"] for field in document["fields"])

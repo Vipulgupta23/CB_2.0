@@ -168,6 +168,7 @@ class DocumentRead(StrictModel):
     classification_confidence: float | None
     warnings: list[str]
     fields: list[ExtractedFieldRead]
+    disclaimer: str
 
 
 class ExtractionFailureRead(StrictModel):
@@ -229,7 +230,27 @@ class DetectionRunRead(StrictModel):
     persona_id: int
     rules_version: str
     readiness_score: int | None
+    score_breakdown: dict[str, int]
     run_at: str
     disclaimer: str
     conflicts: list[FindingRead]
     scope_gaps: list[FindingRead]
+
+
+class PersonaListRead(StrictModel):
+    personas: list[PersonaRead]
+
+
+class FieldUpdate(StrictModel):
+    named_person: str | None = Field(default=None, max_length=200)
+    relationship: str | None = Field(default=None, max_length=100)
+
+    @field_validator("named_person", "relationship")
+    @classmethod
+    def reject_blank(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("value must not be blank")
+        return cleaned
