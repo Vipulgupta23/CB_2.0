@@ -59,7 +59,10 @@ services:
     region: singapore
     dockerfilePath: ./docker/frontend.Dockerfile
     dockerContext: .
-    healthCheckPath: /
+    # Not "/": every other path is behind the shared credential and answers 401, which a
+    # health check reads as a failure and the deploy would never go live. /healthz returns
+    # a fixed "ok" and reads nothing.
+    healthCheckPath: /healthz
     autoDeploy: true
     envVars:
       # Render supplies the hostname without a scheme; the proxy route defaults a bare

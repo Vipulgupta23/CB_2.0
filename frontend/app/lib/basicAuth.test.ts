@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { authDecision } from "./basicAuth";
+import { authDecision, isHealthPath } from "./basicAuth";
 
 const credentials = { user: "judge", password: "s3cret:with:colons" };
 
@@ -89,5 +89,26 @@ describe("authDecision", () => {
         publicDeployment: "true",
       }),
     ).toBe("challenge");
+  });
+});
+
+
+describe("isHealthPath", () => {
+  it("exempts only the health probe, with or without a trailing slash", () => {
+    expect(isHealthPath("/healthz")).toBe(true);
+    expect(isHealthPath("/healthz/")).toBe(true);
+  });
+
+  it("does not exempt anything else, including lookalikes", () => {
+    for (const path of [
+      "/",
+      "/personas/1",
+      "/api/backend/personas",
+      "/healthz/../personas/1",
+      "/healthzz",
+      "/a/healthz",
+    ]) {
+      expect(isHealthPath(path)).toBe(false);
+    }
   });
 });

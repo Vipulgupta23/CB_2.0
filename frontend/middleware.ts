@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { authDecision } from "./app/lib/basicAuth";
+import { authDecision, isHealthPath } from "./app/lib/basicAuth";
 
 /**
  * Gate every request, including the /api/backend proxy, behind one shared credential.
@@ -9,6 +9,11 @@ import { authDecision } from "./app/lib/basicAuth";
  * refuses to serve rather than quietly exposing the upload path. See docs/DEPLOYMENT.md.
  */
 export function middleware(request: NextRequest) {
+  // The platform health check must get a 2xx, so it cannot be gated.
+  if (isHealthPath(request.nextUrl.pathname)) {
+    return NextResponse.next();
+  }
+
   const decision = authDecision({
     header: request.headers.get("authorization"),
     user: process.env.BASIC_AUTH_USER,

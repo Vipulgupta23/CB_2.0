@@ -39,6 +39,14 @@ The blueprint provisions two Docker web services on the free plan. Free instance
 | `SEED_ON_STARTUP=true` | Because storage is ephemeral, a cold start would otherwise show an empty vault. This re-inserts the labelled snapshot. It never overwrites existing data. |
 | `region: singapore` | Closest Render region to India. Change it freely; nothing depends on it. |
 
+### If the frontend deploy times out on a health check
+
+The symptom is `Timed out after waiting for internal health check to return a successful response code at: <host>:10000/`, with a build log that otherwise shows Next.js starting normally.
+
+The cause is the health check path being `/`, which the credential gate answers with `401`. Render reads anything other than a 2xx as unhealthy and eventually fails the deploy. The frontend's health check must be `/healthz`, which is the one path the gate lets through.
+
+This is fixed in `render.yaml`. If a service was created before the fix, the blueprint sync updates it, but you can also set it directly: **jeevansetu-frontend → Settings → Health Check Path → `/healthz`**, which takes effect on the next deploy without waiting for a sync.
+
 ### If Render rejects the API_TOKEN reference
 
 The frontend copies the backend's token with `fromService` + `envVarKey`. If your Render workspace rejects that field, delete those three lines and set `API_TOKEN` on the frontend by hand to match the value on the backend. Nothing else changes.
@@ -114,6 +122,8 @@ With this wiring the browser calls a same-origin path, the Next.js server attach
 
 | Check | Result |
 |---|---|
+| `GET /healthz`, no credentials | `200 ok` — the platform health check must not be gated |
+| `GET /healthzz`, a lookalike path | `401`, so the exemption is exactly one path |
 | Frontend with no credentials | `401` with a `WWW-Authenticate: Basic` challenge |
 | `/api/backend/personas` with no credentials | `401` — the proxy is no longer an anonymous relay |
 | Frontend with the correct credentials | `200` on `/` and on `/personas/1` |

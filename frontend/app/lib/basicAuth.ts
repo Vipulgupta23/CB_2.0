@@ -12,6 +12,16 @@
 
 export type AuthDecision = "allow" | "challenge" | "misconfigured";
 
+/**
+ * The one path that must answer without a credential.
+ *
+ * A platform health check needs a 2xx. If it were gated it would receive 401 and the
+ * deploy would never go live. The route returns a fixed string and touches nothing.
+ */
+export function isHealthPath(pathname: string): boolean {
+  return pathname === "/healthz" || pathname === "/healthz/";
+}
+
 export type AuthInput = {
   /** The raw Authorization header, if the request carried one. */
   header: string | null;
