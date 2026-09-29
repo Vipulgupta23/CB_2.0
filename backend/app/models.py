@@ -65,6 +65,12 @@ class AssignmentStatus(StrEnum):
     UNKNOWN = "unknown"
 
 
+class HoldingPattern(StrEnum):
+    SINGLE = "single"
+    JOINT = "joint"
+    UNKNOWN = "unknown"
+
+
 class DocumentStatus(StrEnum):
     UPLOADED = "uploaded"
     EXTRACTING = "extracting"
@@ -119,6 +125,7 @@ class ExtractedField(StrictModel):
     policy_kind: PolicyKind
     mwpa_section_6_applies: TriState
     assignment_status: AssignmentStatus
+    holding_pattern: HoldingPattern
 
     @field_validator(
         "document_group_id",
@@ -146,6 +153,7 @@ class ExtractedFieldRead(ExtractedField):
     id: int
     document_id: int
     is_user_edited: bool
+    holding_pattern: HoldingPattern = HoldingPattern.UNKNOWN
 
 
 class DocumentRead(StrictModel):

@@ -2,22 +2,39 @@
 
 import logging
 import os
+import secrets
 import sqlite3
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api import router
 from app.db import get_connection, init_db
+
+#: Paths that stay reachable without a token so container and UI health checks work.
+#: Compared after stripping a trailing slash, because a health check configured as
+#: "/health/" must not be told the backend is down.
+UNAUTHENTICATED_PATHS = frozenset({"/health"})
 
 
 def configured_origins() -> list[str]:
     """Read an explicit comma-separated browser origin allowlist."""
     raw_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000")
     return [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+
+
+def configured_api_token() -> str | None:
+    """Return the shared bearer token, or None when the API is left open.
+
+    The local demo runs on loopback with no token. Setting API_TOKEN is how a hosted
+    deployment stops the API from being world-writable; see docs/DEPLOYMENT.md.
+    """
+    token = os.getenv("API_TOKEN", "").strip()
+    return token or None
 
 
 @asynccontextmanager
@@ -35,6 +52,45 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+
+async def require_api_token(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
+    """Gate every route behind a shared bearer token when API_TOKEN is configured.
+
+    Disabled by default, which keeps the loopback-only demo unchanged. This is one shared
+    secret, not user authentication. It stops a hosted backend from being reachable
+    directly and keeps the token out of the browser; it does not identify a caller. See
+    docs/DEPLOYMENT.md, which states what it does not cover.
+    """
+    expected = configured_api_token()
+    if (
+        expected is None
+        or request.method == "OPTIONS"
+        or request.url.path.rstrip("/") in UNAUTHENTICATED_PATHS
+    ):
+        return await call_next(request)
+
+    presented = request.headers.get("authorization", "")
+    if not secrets.compare_digest(presented, f"Bearer {expected}"):
+        return JSONResponse(
+            status_code=401,
+            content={
+                "detail": {
+                    "code": "unauthorized",
+                    "message": "A valid API token is required for this deployment.",
+                }
+            },
+        )
+    return await call_next(request)
+
+
+# Registration order matters. Starlette prepends, so the middleware added last is the
+# outermost one. CORS is added last on purpose: a 401 from the token gate must still
+# carry CORS headers, or a browser sees an opaque network failure instead of the status.
+app.add_middleware(BaseHTTPMiddleware, dispatch=require_api_token)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=configured_origins(),

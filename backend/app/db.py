@@ -6,10 +6,11 @@ from pathlib import Path
 
 DEFAULT_DATABASE_PATH = Path(__file__).resolve().parents[1] / "data" / "jeevansetu.db"
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 REQUIRED_COLUMNS = {
     "documents": "content_sha256",
     "conflicts": "rules_version",
+    "extracted_fields": "holding_pattern",
 }
 
 

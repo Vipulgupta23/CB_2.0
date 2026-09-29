@@ -14,6 +14,7 @@ import {
   listDocuments,
   listPersonas,
   runDetection,
+  undoField,
   updateField,
 } from "../../lib/api";
 
@@ -125,6 +126,25 @@ export default function PersonaPage() {
     }
   }
 
+  async function handleUndo(fieldId: number) {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await undoField(fieldId);
+      const { documents: refreshed } = await listDocuments(personaId);
+      setDocuments(refreshed);
+      setStale(true);
+      setNotice(
+        "Simulated fix reverted. The edit is kept in the audit trail. Re-run detection to see the effect on the score.",
+      );
+    } catch {
+      setError("The fix could not be reverted. The stored records were not changed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const conflicts = run?.conflicts ?? [];
   const gaps = run?.scope_gaps ?? [];
 
@@ -216,6 +236,7 @@ export default function PersonaPage() {
         <VaultPanel
           documents={documents}
           onSave={handleSave}
+          onUndo={handleUndo}
           onRerun={handleRerun}
           busy={busy}
         />

@@ -33,6 +33,10 @@ class ExtractionInProgressError(RuntimeError):
     pass
 
 
+class NoEditToUndoError(LookupError):
+    pass
+
+
 def create_persona(data: PersonaCreate) -> PersonaRead:
     aliases_json = json.dumps(data.manually_confirmed_aliases)
     with get_connection() as connection:
@@ -148,8 +152,8 @@ def save_extraction(
                     share_percent, source_text, source_locator, confidence,
                     registration_status, registration_date,
                     explicit_nomination_action, policy_kind,
-                    mwpa_section_6_applies, assignment_status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    mwpa_section_6_applies, assignment_status, holding_pattern
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     document_id,
@@ -170,6 +174,7 @@ def save_extraction(
                     field.policy_kind.value,
                     field.mwpa_section_6_applies.value,
                     field.assignment_status.value,
+                    field.holding_pattern.value,
                 ),
             )
         connection.execute(
@@ -249,6 +254,7 @@ def get_document(document_id: int) -> DocumentRead:
             "policy_kind": row["policy_kind"],
             "mwpa_section_6_applies": row["mwpa_section_6_applies"],
             "assignment_status": row["assignment_status"],
+            "holding_pattern": row["holding_pattern"],
             "is_user_edited": bool(row["is_user_edited"]),
         }
         for row in field_rows
@@ -360,6 +366,7 @@ def load_field_records(persona_id: int) -> list[FieldRecord]:
             policy_kind=row["policy_kind"],
             mwpa_section_6_applies=row["mwpa_section_6_applies"],
             assignment_status=row["assignment_status"],
+            holding_pattern=row["holding_pattern"],
         )
         for row in rows
     ]
@@ -535,7 +542,8 @@ def update_extracted_field(
     with get_connection() as connection:
         row = connection.execute(
             """
-            SELECT d.persona_id AS persona_id, f.document_id AS document_id
+            SELECT d.persona_id AS persona_id, f.document_id AS document_id,
+                   f.person_name AS person_name, f.relationship AS relationship
             FROM extracted_fields AS f
             JOIN documents AS d ON d.id = f.document_id
             WHERE f.id = ?
@@ -544,6 +552,14 @@ def update_extracted_field(
         ).fetchone()
         if row is None:
             raise RecordNotFoundError(f"Extracted field {field_id} not found")
+
+        # Saving the same value is not an edit. Recording one would badge the field as
+        # edited and claim the value was changed in this demo when nothing changed.
+        unchanged = (
+            named_person is None or named_person.strip() == row["person_name"]
+        ) and (relationship is None or relationship.strip() == row["relationship"])
+        if unchanged:
+            return int(row["persona_id"]), int(row["document_id"])
 
         connection.execute(
             f"""
@@ -554,6 +570,86 @@ def update_extracted_field(
             WHERE id = ?
             """,
             (*values, field_id),
+        )
+        updated = connection.execute(
+            "SELECT person_name, relationship FROM extracted_fields WHERE id = ?",
+            (field_id,),
+        ).fetchone()
+        connection.execute(
+            """
+            INSERT INTO field_edits (
+                field_id, previous_person_name, previous_relationship,
+                new_person_name, new_relationship
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                field_id,
+                row["person_name"],
+                row["relationship"],
+                updated["person_name"],
+                updated["relationship"],
+            ),
+        )
+        return int(row["persona_id"]), int(row["document_id"])
+
+
+def undo_last_field_edit(field_id: int) -> tuple[int, int]:
+    """Revert the most recent simulated fix. Returns (persona_id, document_id)."""
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT d.persona_id AS persona_id, f.document_id AS document_id
+            FROM extracted_fields AS f
+            JOIN documents AS d ON d.id = f.document_id
+            WHERE f.id = ?
+            """,
+            (field_id,),
+        ).fetchone()
+        if row is None:
+            raise RecordNotFoundError(f"Extracted field {field_id} not found")
+
+        edit = connection.execute(
+            """
+            SELECT id, previous_person_name, previous_relationship
+            FROM field_edits
+            WHERE field_id = ? AND undone_at IS NULL
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (field_id,),
+        ).fetchone()
+        if edit is None:
+            raise NoEditToUndoError(f"Extracted field {field_id} has no edit to undo")
+
+        remaining = connection.execute(
+            """
+            SELECT COUNT(*) AS n FROM field_edits
+            WHERE field_id = ? AND undone_at IS NULL AND id < ?
+            """,
+            (field_id, edit["id"]),
+        ).fetchone()["n"]
+
+        connection.execute(
+            """
+            UPDATE extracted_fields
+            SET person_name = ?, relationship = ?, is_user_edited = ?,
+                updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+            WHERE id = ?
+            """,
+            (
+                edit["previous_person_name"],
+                edit["previous_relationship"],
+                1 if remaining else 0,
+                field_id,
+            ),
+        )
+        connection.execute(
+            """
+            UPDATE field_edits
+            SET undone_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+            WHERE id = ?
+            """,
+            (edit["id"],),
         )
         return int(row["persona_id"]), int(row["document_id"])
 

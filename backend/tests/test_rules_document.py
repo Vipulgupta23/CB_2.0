@@ -84,3 +84,27 @@ def test_rule_count_remains_within_phase_one_scope() -> None:
     count = len(rule_sections(read_rules()))
 
     assert 5 <= count <= 8
+
+
+def test_every_gap_marker_the_engine_can_emit_is_documented() -> None:
+    """A gap the code can emit but the document does not describe is an undocumented rule."""
+    app_dir = RULES_PATH.parents[1] / "app"
+    sources = "".join(
+        (app_dir / name).read_text(encoding="utf-8")
+        for name in ("detection.py", "scoring.py", "api.py")
+    )
+    emitted = set(re.findall(r"\bGAP-[A-Z-]+\b", sources))
+    documented = set(re.findall(r"`(GAP-[A-Z-]+)`", read_rules()))
+
+    assert emitted, "no gap markers were found in the engine source"
+    assert emitted <= documented, f"undocumented gap markers: {sorted(emitted - documented)}"
+
+
+def test_the_holding_pattern_scope_is_documented_with_all_three_values() -> None:
+    document = read_rules()
+
+    assert "holding_pattern" in document
+    for value in ("`single`", "`joint`", "`unknown`"):
+        assert value in document
+    assert "GAP-JOINT-HOLDING" in document
+    assert "deliberately in scope" in document

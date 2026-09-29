@@ -69,6 +69,7 @@ class FieldRecord:
     policy_kind: str
     mwpa_section_6_applies: str
     assignment_status: str
+    holding_pattern: str = "unknown"
 
     @property
     def group_key(self) -> tuple[int, str]:
@@ -234,6 +235,66 @@ def _asset_mismatch_finding(
     )
 
 
+# --- Holding-pattern scope gate -------------------------------------------
+
+JOINT_HOLDING_SUMMARY = (
+    "Manual review required: this asset is held jointly, which the approved rules exclude."
+)
+JOINT_HOLDING_NOTE = (
+    "The bank and mutual-fund rules are scoped to individually held accounts and "
+    "sole-holder folios. Joint holdings and survivorship mandates are excluded, so no "
+    "conflict conclusion is drawn for this asset."
+)
+JOINT_HOLDING_ACTIONS = (
+    "Ask the institution how the joint holding and any survivorship mandate apply.",
+    "Ask a licensed advisor to review this asset directly.",
+)
+HOLDING_SCOPED_ASSETS = {"bank_account", "mutual_fund_folio"}
+
+
+def _holding_in_scope(nomination: FieldRecord) -> bool:
+    """Joint holdings are excluded. Unknown is treated as not excluded, by design."""
+    if nomination.asset_type not in HOLDING_SCOPED_ASSETS:
+        return True
+    return nomination.holding_pattern != "joint"
+
+
+def _joint_holding_gaps(records: list[FieldRecord]) -> list[Finding]:
+    """Report the assets the holding-pattern gate removed from rule scope.
+
+    Restricted to `nominee`, the one mechanism the two gated rules match, so the gap is
+    exactly the complement of the skipped rule rather than a wider net. The gap is raised
+    whether or not the names agree: the rules do not cover a joint holding at all, so the
+    engine has no basis for calling it clean either.
+    """
+    findings: list[Finding] = []
+    for nomination in records:
+        if nomination.mechanism_type != "nominee":
+            continue
+        if nomination.asset_type not in HOLDING_SCOPED_ASSETS:
+            continue
+        if nomination.holding_pattern != "joint":
+            continue
+        for bequest_record in _bequests(records):
+            if same_asset(nomination, bequest_record):
+                findings.append(
+                    Finding(
+                        rule_id="GAP-JOINT-HOLDING",
+                        finding_type=SCOPE_GAP,
+                        severity="low",
+                        asset_type=nomination.asset_type,
+                        asset_reference=nomination.asset_reference,
+                        summary=JOINT_HOLDING_SUMMARY,
+                        legal_scope_note=JOINT_HOLDING_NOTE,
+                        suggested_actions=JOINT_HOLDING_ACTIONS,
+                        source_a=_source(nomination, "Nomination record"),
+                        source_b=_source(bequest_record, "Will bequest"),
+                    )
+                )
+                break
+    return findings
+
+
 # --- Rule BANK-WILL-001 ---------------------------------------------------
 
 BANK_WILL_SUMMARY = (
@@ -253,6 +314,8 @@ BANK_WILL_ACTIONS = (
 def rule_bank_will(records: list[FieldRecord], context: PersonaContext) -> list[Finding]:
     findings: list[Finding] = []
     for nomination in _nominations(records, "bank_account", "nominee"):
+        if not _holding_in_scope(nomination):
+            continue
         for bequest in _bequests(records):
             if same_asset(nomination, bequest) and persons_differ(
                 nomination, bequest, context.confirmed_aliases
@@ -457,6 +520,8 @@ MF_WILL_ACTIONS = (
 def rule_mf_will(records: list[FieldRecord], context: PersonaContext) -> list[Finding]:
     findings: list[Finding] = []
     for nomination in _nominations(records, "mutual_fund_folio", "nominee"):
+        if not _holding_in_scope(nomination):
+            continue
         for bequest in _bequests(records):
             if same_asset(nomination, bequest) and persons_differ(
                 nomination, bequest, context.confirmed_aliases
@@ -687,8 +752,9 @@ UNSUPPORTED_SUPERSESSION_SUMMARY = (
     "supported rule scope."
 )
 UNSUPPORTED_SUPERSESSION_NOTE = (
-    "The approved rules do not cover this asset type, or the policy is under the Married "
-    "Women's Property Act or an active assignment, so no supersession conclusion is drawn."
+    "The approved rules do not cover this asset type, or the asset is held jointly, or the "
+    "policy is under the Married Women's Property Act or an active assignment, so no "
+    "supersession conclusion is drawn."
 )
 UNSUPPORTED_SUPERSESSION_ACTIONS = (
     "Ask the institution which nomination record it currently recognizes.",
@@ -701,7 +767,7 @@ def _supersession_in_scope(record: FieldRecord) -> bool:
         return False
     if record.asset_type == "insurance_policy":
         return _life_scope_supported(record)
-    return True
+    return _holding_in_scope(record)
 
 
 def rule_record_supersession(
@@ -930,6 +996,7 @@ def detect(records: list[FieldRecord], context: PersonaContext) -> DetectionResu
     findings.extend(rule_nps_will(records, context, flagged_groups))
 
     findings.extend(_life_scope_gaps(records, context))
+    findings.extend(_joint_holding_gaps(records))
     findings.extend(_missing_reference_gaps(records))
     findings.extend(_near_miss_gaps(records))
 

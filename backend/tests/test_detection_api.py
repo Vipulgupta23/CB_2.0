@@ -411,7 +411,7 @@ def test_document_response_carries_the_disclaimer(
                 field_id = documents["documents"][0]["fields"][0]["id"]
                 patched = await client.patch(
                     f"/fields/{field_id}",
-                    json={"relationship": "spouse"},
+                    json={"relationship": "wife"},
                 )
                 assert patched.status_code == 200
                 return patched.json()
@@ -420,3 +420,223 @@ def test_document_response_carries_the_disclaimer(
 
     assert document["disclaimer"] == DISCLAIMER
     assert any(field["is_user_edited"] for field in document["fields"])
+
+
+def test_saving_an_unchanged_value_is_not_recorded_as_an_edit(
+    database: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Otherwise the vault claims the value was changed in this demo when it was not."""
+    stub_explanation(monkeypatch)
+    persona_id = seed_persona("clean_persona")
+
+    async def scenario() -> tuple[dict, int]:
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                documents = (await client.get(f"/personas/{persona_id}/documents")).json()
+                field = documents["documents"][0]["fields"][0]
+                patched = await client.patch(
+                    f"/fields/{field['id']}",
+                    json={"named_person": field["named_person"]},
+                )
+                assert patched.status_code == 200
+                undo = await client.post(f"/fields/{field['id']}/undo")
+                return patched.json(), undo.status_code
+
+    document, undo_status = asyncio.run(scenario())
+
+    assert not any(field["is_user_edited"] for field in document["fields"])
+    assert undo_status == 409
+
+
+def test_undo_restores_the_original_extraction_and_the_original_score(
+    database: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A simulated fix must be reversible, and the score must fall back with it."""
+    stub_explanation(monkeypatch)
+    persona_id = seed_persona("conflict_persona")
+
+    async def scenario() -> tuple[dict, dict, dict, dict]:
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                before = (await client.post(f"/personas/{persona_id}/detections")).json()
+                field_id = before["conflicts"][0]["source_a"]["field_id"]
+                original = next(
+                    field
+                    for document in (
+                        await client.get(f"/personas/{persona_id}/documents")
+                    ).json()["documents"]
+                    for field in document["fields"]
+                    if field["id"] == field_id
+                )
+
+                will_person = before["conflicts"][0]["source_b"]["text"].split(" (")[0]
+                await client.patch(f"/fields/{field_id}", json={"named_person": will_person})
+                fixed = (await client.post(f"/personas/{persona_id}/detections")).json()
+
+                undone = await client.post(f"/fields/{field_id}/undo")
+                assert undone.status_code == 200, undone.text
+                after = (await client.post(f"/personas/{persona_id}/detections")).json()
+                return original, fixed, undone.json(), after
+
+    original, fixed, undone_document, after = asyncio.run(scenario())
+
+    restored = next(
+        field for field in undone_document["fields"] if field["id"] == original["id"]
+    )
+    assert fixed["readiness_score"] == 100
+    assert restored["named_person"] == original["named_person"]
+    assert restored["relationship"] == original["relationship"]
+    assert restored["is_user_edited"] is False
+    assert [f["rule_id"] for f in after["conflicts"]] == ["BANK-WILL-001"]
+    assert after["readiness_score"] == 75
+
+
+def test_undo_unwinds_one_edit_at_a_time_and_keeps_the_edited_flag(
+    database: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """With two stacked edits, one undo returns to the first edit, not the original."""
+    stub_explanation(monkeypatch)
+    persona_id = seed_persona("clean_persona")
+
+    async def scenario() -> tuple[dict, dict, dict]:
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                documents = (await client.get(f"/personas/{persona_id}/documents")).json()
+                field = documents["documents"][0]["fields"][0]
+                field_id = field["id"]
+                await client.patch(f"/fields/{field_id}", json={"named_person": "Edit One"})
+                await client.patch(f"/fields/{field_id}", json={"named_person": "Edit Two"})
+                first_undo = (await client.post(f"/fields/{field_id}/undo")).json()
+                second_undo = (await client.post(f"/fields/{field_id}/undo")).json()
+                return field, first_undo, second_undo
+
+    original, first_undo, second_undo = asyncio.run(scenario())
+
+    after_first = next(f for f in first_undo["fields"] if f["id"] == original["id"])
+    after_second = next(f for f in second_undo["fields"] if f["id"] == original["id"])
+
+    assert after_first["named_person"] == "Edit One"
+    assert after_first["is_user_edited"] is True
+    assert after_second["named_person"] == original["named_person"]
+    assert after_second["is_user_edited"] is False
+
+
+def test_undo_writes_an_audit_trail_that_survives_the_undo(
+    database: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Edits are never erased; they are marked undone so the demo stays auditable."""
+    stub_explanation(monkeypatch)
+    persona_id = seed_persona("clean_persona")
+
+    async def scenario() -> int:
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                documents = (await client.get(f"/personas/{persona_id}/documents")).json()
+                field_id = documents["documents"][0]["fields"][0]["id"]
+                await client.patch(f"/fields/{field_id}", json={"named_person": "Edit One"})
+                await client.post(f"/fields/{field_id}/undo")
+                return field_id
+
+    field_id = asyncio.run(scenario())
+
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT previous_person_name, new_person_name, undone_at
+            FROM field_edits WHERE field_id = ? ORDER BY id
+            """,
+            (field_id,),
+        ).fetchall()
+
+    assert len(rows) == 1
+    assert rows[0]["new_person_name"] == "Edit One"
+    assert rows[0]["previous_person_name"] != "Edit One"
+    assert rows[0]["undone_at"] is not None
+
+
+def test_undo_reports_a_conflict_when_there_is_nothing_to_undo(
+    database: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stub_explanation(monkeypatch)
+    persona_id = seed_persona("clean_persona")
+
+    async def scenario() -> tuple[int, dict, int]:
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                documents = (await client.get(f"/personas/{persona_id}/documents")).json()
+                field_id = documents["documents"][0]["fields"][0]["id"]
+                never_edited = await client.post(f"/fields/{field_id}/undo")
+                missing = await client.post("/fields/999999/undo")
+                return never_edited.status_code, never_edited.json(), missing.status_code
+
+    status, payload, missing_status = asyncio.run(scenario())
+
+    assert status == 409
+    assert payload["detail"]["code"] == "no_edit_to_undo"
+    assert missing_status == 404
+
+
+def test_a_forced_re_extraction_replaces_the_fields_and_their_edit_history(
+    database: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Pins the real durability boundary: undo never deletes, re-extraction does.
+
+    The edit log is keyed to the extracted field rows and cascades with them. Re-extraction
+    is the documented way to discard simulated fixes, and it requires force=true, so the
+    history going with them is deliberate rather than silent.
+    """
+    stub_explanation(monkeypatch)
+    persona_id = seed_persona("clean_persona")
+
+    async def scenario() -> int:
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                documents = (await client.get(f"/personas/{persona_id}/documents")).json()
+                field_id = documents["documents"][0]["fields"][0]["id"]
+                await client.patch(f"/fields/{field_id}", json={"named_person": "Edited"})
+                return field_id
+
+    field_id = asyncio.run(scenario())
+
+    with get_connection() as connection:
+        before = connection.execute(
+            "SELECT COUNT(*) AS n FROM field_edits WHERE field_id = ?", (field_id,)
+        ).fetchone()["n"]
+        document_id = int(
+            connection.execute(
+                "SELECT document_id FROM extracted_fields WHERE id = ?", (field_id,)
+            ).fetchone()["document_id"]
+        )
+        connection.execute(
+            "DELETE FROM extracted_fields WHERE document_id = ?", (document_id,)
+        )
+        after = connection.execute(
+            "SELECT COUNT(*) AS n FROM field_edits WHERE field_id = ?", (field_id,)
+        ).fetchone()["n"]
+
+    assert before == 1
+    assert after == 0

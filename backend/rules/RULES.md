@@ -436,7 +436,9 @@ The seven rules above are the only approved conflict rules. When the engine meet
 | `GAP-NPS-RELATIONSHIP` | The owner is confirmed to have a family but a listed NPS nominee relationship is neither clearly inside nor clearly outside the regulation's family definition. |
 | `GAP-ASSET-REFERENCE` | An extracted record has no asset reference at all, so deterministic matching is impossible. |
 | `GAP-ASSET-NEAR-MATCH` | A nomination and a will clause differ only by a truncated reference or an institution-name variant, so they must not be treated as either the same asset or a clean result. |
-| `GAP-UNSUPPORTED-SUPERSESSION` | Two nomination records disagree on an asset type the rules exclude, or on a policy under the MWP Act or an active assignment. |
+| `GAP-UNSUPPORTED-SUPERSESSION` | Two nomination records disagree on an asset type the rules exclude, on a jointly held asset, or on a policy under the MWP Act or an active assignment. |
+| `GAP-JOINT-HOLDING` | A nomination record for an asset the rules cover is extracted as a jointly held asset, so the single-holder scope of `BANK-WILL-001`, `MF-WILL-001` and `RECORD-SUPERSESSION-001` does not apply. |
+| `GAP-MISSING-NOMINATION` | A will assigns an asset for which no nomination record was uploaded at all, so there is nothing to compare. This is a completeness gap, not a conflict. |
 
 A gap means *manual review required*. It is never a conflict, never carries a severity above `low`, and never implies a legal position. Gaps still carry the mandatory disclaimer.
 
@@ -448,4 +450,21 @@ A gap means *manual review required*. It is never a conflict, never carries a se
 - Explicitly outside the NPS family definition for `NPS-VALIDITY-001`: `friend`, `sibling`, `brother`, `sister`, `charity`, `unrelated`, and `other_non_family`.
 - Anything else is `ambiguous`. Ambiguous relationships use medium severity for `LIFE-WILL-001` and produce `GAP-NPS-RELATIONSHIP` instead of a validity warning.
 
-Known Phase 4 limitation: `BANK-WILL-001` is scoped to individually held accounts and `MF-WILL-001` to sole-holder folios, but the extraction schema carries no holding-pattern field, so the engine cannot yet exclude a joint account or a demat-only holding. Until that field exists, a joint holding that is classified as a bank account or mutual-fund folio would be reported as a conflict. This is recorded rather than silently ignored.
+## 14. Holding pattern and the single-holder scope
+
+`BANK-WILL-001` is scoped to individually held accounts, `MF-WILL-001` to sole-holder folios, and `RECORD-SUPERSESSION-001` to the assets those rules cover. The extraction schema carries a `holding_pattern` field with exactly three values, and the engine reads it from the nomination record, not the will clause, because the nomination form is what states how the asset is held.
+
+| `holding_pattern` | Engine behaviour |
+|---|---|
+| `single` | In scope. The rule is applied normally. |
+| `joint` | Out of scope. No conflict is raised; `GAP-JOINT-HOLDING` is emitted instead. |
+| `unknown` | Treated as in scope. |
+
+`unknown` is deliberately in scope. A document that does not state its holding pattern is the common case, and excluding it would silently skip most records and report a clean result where none was checked. The consequence is recorded honestly: if a jointly held asset is extracted as `unknown`, the engine may still report a conflict for it, and that conflict is a prompt to review the documents rather than a statement about who is entitled to the asset. Nothing in this section decides survivorship, which stays outside the rule set under section 9.
+
+Two further consequences, recorded because they are not obvious:
+
+- **The gap is raised whether or not the named people agree.** The rules do not cover a joint holding at all, so the engine has no basis for calling it clean either. A joint nomination and a will naming the same person still reports manual review required. The gap is restricted to the `nominee` mechanism, the one the two gated rules match, so it is the complement of the skipped rule and not a wider net.
+- **Leaving rule scope raises the score.** The score charges 25 for a high conflict and 3 for a low gap, so the same joint account that would have scored 75 as a conflict scores 97 as a gap. This is true of every `GAP-` marker, not only this one: a finding the rules cannot judge costs less than one they can. The score is labelled as review priority for synthetic documents and not legal readiness, and a gap is never a statement that the asset is fine.
+
+Demat-only holdings remain outside every rule regardless of holding pattern, per section 9.

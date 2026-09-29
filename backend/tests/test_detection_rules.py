@@ -42,6 +42,7 @@ def record(**overrides) -> FieldRecord:
         "policy_kind": "unknown",
         "mwpa_section_6_applies": "unknown",
         "assignment_status": "unknown",
+        "holding_pattern": "single",
     }
     defaults.update(overrides)
     return FieldRecord(**defaults)
@@ -700,3 +701,133 @@ def test_gap_markers_are_namespaced_and_not_approved_rule_ids() -> None:
         assert gap.rule_id.startswith("GAP-")
         assert gap.severity == "low"
         assert gap.finding_type == SCOPE_GAP
+
+
+# --- Joint-holding scope (previously a recorded gap) ---------------------
+
+
+def test_joint_bank_account_becomes_a_gap_not_a_conflict() -> None:
+    result = detect(
+        [record(holding_pattern="joint"), bequest()],
+        PersonaContext(),
+    )
+
+    assert result.conflicts == []
+    assert rule_ids(result.scope_gaps) == ["GAP-JOINT-HOLDING"]
+    assert result.scope_gaps[0].severity == "low"
+    assert result.scope_gaps[0].source_b is not None
+
+
+def test_joint_mutual_fund_folio_becomes_a_gap_not_a_conflict() -> None:
+    result = detect(
+        [
+            mf_nomination(holding_pattern="joint"),
+            bequest(
+                asset_type="mutual_fund_folio",
+                asset_reference="MF-TEST-1",
+                institution_name="Synthetic Demo AMC",
+            ),
+        ],
+        PersonaContext(),
+    )
+
+    assert result.conflicts == []
+    assert rule_ids(result.scope_gaps) == ["GAP-JOINT-HOLDING"]
+
+
+def test_single_and_unknown_holdings_still_report_the_conflict() -> None:
+    single = detect([record(holding_pattern="single"), bequest()], PersonaContext())
+    unknown = detect([record(holding_pattern="unknown"), bequest()], PersonaContext())
+
+    assert rule_ids(single.conflicts) == ["BANK-WILL-001"]
+    assert rule_ids(unknown.conflicts) == ["BANK-WILL-001"]
+    assert single.scope_gaps == []
+
+
+def test_joint_holding_does_not_affect_nps_or_insurance_rules() -> None:
+    nps = detect(
+        [nps_nomination(holding_pattern="joint"), nps_bequest()],
+        PersonaContext(),
+    )
+
+    assert rule_ids(nps.conflicts) == ["NPS-WILL-001"]
+
+
+def test_joint_holding_is_excluded_from_supersession() -> None:
+    result = detect(
+        [
+            mf_nomination(
+                document_id=1,
+                named_person="First",
+                holding_pattern="joint",
+                registration_status="unconfirmed",
+                registration_date=None,
+            ),
+            mf_nomination(
+                document_id=2,
+                named_person="Second",
+                holding_pattern="joint",
+                registration_status="unconfirmed",
+                registration_date=None,
+            ),
+        ],
+        PersonaContext(),
+    )
+
+    assert result.conflicts == []
+    assert "GAP-UNSUPPORTED-SUPERSESSION" in rule_ids(result.scope_gaps)
+    gap = next(
+        finding
+        for finding in result.scope_gaps
+        if finding.rule_id == "GAP-UNSUPPORTED-SUPERSESSION"
+    )
+    # The note must say why, otherwise it claims the asset type is unsupported when the
+    # real reason is the holding pattern.
+    assert "held jointly" in gap.legal_scope_note
+
+
+def test_one_joint_record_pushes_a_mixed_supersession_group_out_of_scope() -> None:
+    """Fail closed: a group containing a joint record gets no supersession conclusion."""
+    result = detect(
+        [
+            mf_nomination(
+                document_id=1,
+                named_person="First",
+                holding_pattern="single",
+                registration_status="unconfirmed",
+                registration_date=None,
+            ),
+            mf_nomination(
+                document_id=2,
+                named_person="Second",
+                holding_pattern="joint",
+                registration_status="unconfirmed",
+                registration_date=None,
+            ),
+        ],
+        PersonaContext(),
+    )
+
+    assert result.conflicts == []
+    assert "GAP-UNSUPPORTED-SUPERSESSION" in rule_ids(result.scope_gaps)
+
+
+def test_a_joint_holding_where_the_names_agree_is_still_a_gap() -> None:
+    """The rules do not cover a joint holding, so the engine cannot call it clean."""
+    result = detect(
+        [record(holding_pattern="joint"), bequest(named_person="Nominee Person")],
+        PersonaContext(),
+    )
+
+    assert result.conflicts == []
+    assert rule_ids(result.scope_gaps) == ["GAP-JOINT-HOLDING"]
+
+
+def test_a_joint_holding_with_a_mechanism_the_rules_never_match_is_not_gapped() -> None:
+    """The gap is the complement of the skipped rule, not a wider net."""
+    result = detect(
+        [record(holding_pattern="joint", mechanism_type="beneficiary_nominee"), bequest()],
+        PersonaContext(),
+    )
+
+    assert "GAP-JOINT-HOLDING" not in rule_ids(result.scope_gaps)

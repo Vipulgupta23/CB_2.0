@@ -54,6 +54,7 @@ export type ExtractedField = {
   source_locator: string;
   registration_status: string;
   is_user_edited: boolean;
+  holding_pattern: "single" | "joint" | "unknown";
 };
 
 export type DocumentRecord = {
@@ -112,6 +113,10 @@ export function updateField(fieldId: number, namedPerson: string) {
     method: "PATCH",
     body: JSON.stringify({ named_person: namedPerson }),
   });
+}
+
+export function undoField(fieldId: number) {
+  return request<DocumentRecord>(`/fields/${fieldId}/undo`, { method: "POST" });
 }
 
 export type EstateCaseItem = {

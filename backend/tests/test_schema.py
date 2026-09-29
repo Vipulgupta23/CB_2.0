@@ -10,6 +10,7 @@ EXPECTED_TABLES = {
     "detection_runs",
     "documents",
     "extracted_fields",
+    "field_edits",
     "personas",
 }
 

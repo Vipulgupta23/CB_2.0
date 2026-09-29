@@ -18,6 +18,9 @@ frontend/.next/
 frontend/out/
 frontend/*.tsbuildinfo
 
+# Local review artifacts, kept out of history like the earlier phases
+semantic-review/
+
 # Editors and macOS
 .DS_Store
 .vscode/

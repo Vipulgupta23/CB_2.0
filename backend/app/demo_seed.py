@@ -100,8 +100,9 @@ def seed_fallback() -> dict[str, int]:
                             share_percent, source_text, source_locator, confidence,
                             registration_status, registration_date,
                             explicit_nomination_action, policy_kind,
-                            mwpa_section_6_applies, assignment_status
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            mwpa_section_6_applies, assignment_status,
+                            holding_pattern
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             document_id,
@@ -122,6 +123,7 @@ def seed_fallback() -> dict[str, int]:
                             field["policy_kind"],
                             field["mwpa_section_6_applies"],
                             field["assignment_status"],
+                            field["holding_pattern"],
                         ),
                     )
     return persona_ids

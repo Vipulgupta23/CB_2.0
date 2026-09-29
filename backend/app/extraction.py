@@ -84,6 +84,10 @@ GEMINI_RESPONSE_SCHEMA: dict[str, Any] = {
                         "type": "string",
                         "enum": ["active", "none", "unknown"],
                     },
+                    "holding_pattern": {
+                        "type": "string",
+                        "enum": ["single", "joint", "unknown"],
+                    },
                 },
                 "required": [
                     "document_group_id",
@@ -103,6 +107,7 @@ GEMINI_RESPONSE_SCHEMA: dict[str, Any] = {
                     "policy_kind",
                     "mwpa_section_6_applies",
                     "assignment_status",
+                    "holding_pattern",
                 ],
             },
         },
@@ -137,6 +142,11 @@ nominations are beneficiary_nominee. Mark registration confirmed only when the d
 shows institutional registration/acknowledgement. A signed form alone is unconfirmed. Do not infer
 MWP Act applicability, assignment status, family status, aliases, or registration from silence.
 For strings that are absent, return an empty string. For legal-status enums, return unknown.
+
+holding_pattern describes how the asset itself is held, not who is nominated. Use single when the
+document says individual, sole, or single holder. Use joint when it says joint holders, either or
+survivor, former or survivor, or names more than one holder of the asset. Use unknown when the
+document does not say. Never guess from the number of nominees.
 """
 
 USER_INSTRUCTION = """Classify this synthetic document and extract all supported asset/person rows.

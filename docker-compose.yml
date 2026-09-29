@@ -8,6 +8,8 @@ services:
       UPLOAD_DIR: ${UPLOAD_DIR:-/app/data/uploads}
       MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-10485760}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      # Empty by default: the loopback demo runs with no token. See docs/DEPLOYMENT.md.
+      API_TOKEN: ${API_TOKEN:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite}
     ports:
@@ -33,6 +35,9 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      # Used only when NEXT_PUBLIC_API_URL is set to /api/backend for a hosted deployment.
+      BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
+      API_TOKEN: ${API_TOKEN:-}
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:

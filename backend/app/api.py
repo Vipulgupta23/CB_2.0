@@ -24,6 +24,7 @@ from app.models import (
 from app.scoring import completeness_gaps, readiness_score
 from app.repository import (
     ExtractionInProgressError,
+    NoEditToUndoError,
     RecordNotFoundError,
     create_document,
     create_persona,
@@ -41,6 +42,7 @@ from app.repository import (
     mark_extracting,
     save_detection_run,
     save_extraction,
+    undo_last_field_edit,
     update_extracted_field,
 )
 from app.uploads import (
@@ -393,3 +395,22 @@ def read_estate_case_concept(persona_id: int) -> EstateCaseRead:
             for item in case.items
         ],
     )
+
+
+@router.post(
+    "/fields/{field_id}/undo",
+    response_model=DocumentRead,
+    tags=["documents"],
+)
+def undo_simulated_fix(field_id: int) -> DocumentRead:
+    """Revert the most recent simulated fix for one extracted field."""
+    try:
+        _, document_id = undo_last_field_edit(field_id)
+        return get_document(document_id)
+    except NoEditToUndoError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "no_edit_to_undo", "message": str(exc)},
+        ) from exc
+    except RecordNotFoundError as exc:
+        raise not_found(exc) from exc

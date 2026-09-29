@@ -6,10 +6,12 @@ import type { DocumentRecord, ExtractedField } from "../lib/api";
 function FieldRow({
   field,
   onSave,
+  onUndo,
   busy,
 }: {
   field: ExtractedField;
   onSave: (fieldId: number, namedPerson: string) => Promise<void>;
+  onUndo: (fieldId: number) => Promise<void>;
   busy: boolean;
 }) {
   const [editing, setEditing] = useState(false);
@@ -31,6 +33,11 @@ function FieldRow({
         <span className="font-mono text-xs text-slate-500">{field.asset_reference}</span>
         <span className="text-slate-400">·</span>
         <span className="text-slate-600">{field.mechanism_type}</span>
+        {field.holding_pattern === "joint" ? (
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">
+            joint holding · out of rule scope
+          </span>
+        ) : null}
         {field.is_user_edited ? (
           <span className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-800">
             edited
@@ -80,10 +87,23 @@ function FieldRow({
           <button
             type="button"
             className="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700"
-            onClick={() => setEditing(true)}
+            onClick={() => {
+              setValue(field.named_person);
+              setEditing(true);
+            }}
           >
             Simulate a fix
           </button>
+          {field.is_user_edited ? (
+            <button
+              type="button"
+              className="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 disabled:opacity-50"
+              onClick={() => void onUndo(field.id)}
+              disabled={busy}
+            >
+              Undo last fix
+            </button>
+          ) : null}
         </div>
       )}
 
@@ -93,7 +113,13 @@ function FieldRow({
       {field.is_user_edited ? (
         <p className="mt-1 text-xs text-teal-800">
           The value above was changed in this demo. The quote still shows what was
-          originally extracted from the document.
+          originally extracted from the document. Use “Undo last fix” to restore it.
+        </p>
+      ) : null}
+      {field.holding_pattern === "joint" ? (
+        <p className="mt-1 text-xs text-amber-900">
+          This asset is held jointly. The documented rules cover single-holder assets only,
+          so this record is reported as needing manual review instead of being compared.
         </p>
       ) : null}
     </li>
@@ -103,11 +129,13 @@ function FieldRow({
 export function VaultPanel({
   documents,
   onSave,
+  onUndo,
   onRerun,
   busy,
 }: {
   documents: DocumentRecord[];
   onSave: (fieldId: number, namedPerson: string) => Promise<void>;
+  onUndo: (fieldId: number) => Promise<void>;
   onRerun: () => Promise<void>;
   busy: boolean;
 }) {
@@ -157,7 +185,13 @@ export function VaultPanel({
             ) : null}
             <ul className="mt-3 space-y-2">
               {document.fields.map((field) => (
-                <FieldRow key={field.id} field={field} onSave={onSave} busy={busy} />
+                <FieldRow
+                  key={field.id}
+                  field={field}
+                  onSave={onSave}
+                  onUndo={onUndo}
+                  busy={busy}
+                />
               ))}
             </ul>
           </details>

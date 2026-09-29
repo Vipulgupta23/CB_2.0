@@ -76,6 +76,9 @@ CREATE TABLE IF NOT EXISTS extracted_fields (
     assignment_status TEXT NOT NULL CHECK (
         assignment_status IN ('active', 'none', 'unknown')
     ),
+    holding_pattern TEXT NOT NULL DEFAULT 'unknown' CHECK (
+        holding_pattern IN ('single', 'joint', 'unknown')
+    ),
     is_user_edited INTEGER NOT NULL DEFAULT 0 CHECK (is_user_edited IN (0, 1)),
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
@@ -120,7 +123,19 @@ CREATE TABLE IF NOT EXISTS conflicts (
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
+CREATE TABLE IF NOT EXISTS field_edits (
+    id INTEGER PRIMARY KEY,
+    field_id INTEGER NOT NULL REFERENCES extracted_fields(id) ON DELETE CASCADE,
+    previous_person_name TEXT NOT NULL,
+    previous_relationship TEXT NOT NULL,
+    new_person_name TEXT NOT NULL,
+    new_relationship TEXT NOT NULL,
+    undone_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_documents_persona_id ON documents(persona_id);
+CREATE INDEX IF NOT EXISTS idx_field_edits_field_id ON field_edits(field_id);
 CREATE INDEX IF NOT EXISTS idx_documents_sha256 ON documents(content_sha256);
 CREATE INDEX IF NOT EXISTS idx_extracted_fields_document_id ON extracted_fields(document_id);
 CREATE INDEX IF NOT EXISTS idx_detection_runs_persona_id ON detection_runs(persona_id);

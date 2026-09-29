@@ -358,3 +358,53 @@ This is a dated, append-only project log. Legal-rule entries must identify a pub
 **Decision:** The per-asset steps are generic placeholders and are deliberately not added to `RULES.md`, given no rule IDs, and excluded from detection and scoring. The generator imports no AI client and makes no network call.
 
 **Reasoning:** Adding unsourced procedural claims to the rule document would undermine the discipline that every rule is sourced. These steps are illustrative interface content, not findings.
+
+## 2026-09-29 — Recorded gap closure
+
+The user asked for all four recorded gaps to be closed. These decisions supersede the limitations noted in D-037 and D-045 and narrow, but do not remove, D-053.
+
+### D-058 — Holding pattern is extracted, and `unknown` stays in scope
+
+**Decision:** `extracted_fields.holding_pattern` carries exactly `single`, `joint`, or `unknown`, populated by the extraction prompt and schema. `BANK-WILL-001`, `MF-WILL-001`, and `RECORD-SUPERSESSION-001` read it from the nomination record and emit `GAP-JOINT-HOLDING` instead of a conflict when it is `joint`. `unknown` is treated as in scope.
+
+**Reasoning:** This closes D-037: the single-holder scope the rules always claimed is now enforced by code rather than described as an unmet limitation. `unknown` had to stay in scope because most real forms do not state a holding pattern; gapping `unknown` would silently skip the majority of records and report manual-review-required where the rules could in fact be applied. The residual risk, that a joint asset extracted as `unknown` can still be reported as a conflict, is documented in `RULES.md` section 14 and the README rather than hidden.
+
+**Rejected:** treating `unknown` as out of scope, and inferring holding pattern from the number of named holders, which would be a guess about the asset dressed as an extraction.
+
+### D-059 — `rules_version` stays `1.0.0-candidate`
+
+**Decision:** Enforcing the holding-pattern scope does not bump `rules_version`.
+
+**Reasoning:** No rule proposition, source, severity, or predicate changed. Sections 7 and 9 already scoped these rules to individually held assets; the engine previously could not enforce that and said so. The version identifies the rule set, and the rule set is the same. The behaviour change and its date are recorded here and in the gap-closure report instead.
+
+### D-060 — Undo is an audit trail, not a field rollback
+
+**Decision:** Every simulated fix that actually changes a value appends a row to a new `field_edits` table holding the previous and new values. `POST /fields/{id}/undo` reverts the most recent edit that has not been undone, marks it `undone_at`, and clears `is_user_edited` only when no earlier edit remains. Undo itself deletes nothing. Undoing a field with no edit returns `409 no_edit_to_undo`, and saving a value identical to the current one is not recorded as an edit at all.
+
+**Boundary, corrected after review:** the log is keyed to the extracted field rows and cascades with them, so a forced re-extraction (`POST /documents/{id}/extract?force=true`) replaces the document's fields and removes their edit history with them. That is the documented way to discard simulated fixes and it already requires an explicit `force=true`, so the loss is deliberate rather than silent, but "nothing is ever deleted" would have been wrong. A test pins this behaviour.
+
+**Reasoning:** This closes the D-045 limitation. A demo that can change a record must be able to show what it changed and put it back; overwriting the value in place would lose exactly the evidence that makes the fix honest. A stack also makes repeated edits reversible one step at a time, which a single `previous_*` column pair could not do.
+
+**Rejected:** `previous_person_name` and `previous_relationship` columns on `extracted_fields`, which support only one level of undo and keep no history.
+
+### D-061 — Frontend tests cover the components that carry the safety labels
+
+**Decision:** Added Vitest, Testing Library, and jsdom at pinned versions with `npm test`, and 19 tests over `ScoreCard`, `FindingCard`, and `VaultPanel`.
+
+**Reasoning:** These three components render everything the project promised never to misstate: the null-score state, the conflict-versus-gap distinction, the disclaimer, the "not a live AI extraction" label, the original extracted quote next to an edited value, and the joint-holding scope notice. A lint and a production build cannot catch a regression in any of those. Pages and the proxy route are still verified by hand, which the README says.
+
+### D-062 — Deployment readiness is built; deployment itself is not done
+
+**Decision:** Added an optional `API_TOKEN` bearer gate, off by default with `/health` exempt, and a Next.js server-side proxy route so a hosted frontend never ships the token to the browser. Wrote `docs/DEPLOYMENT.md`. No environment was provisioned.
+
+**Reasoning:** D-053 refused cloud deployment because it would expose a keyed, unauthenticated API. The gate narrows that: the backend is no longer reachable directly and the key never reaches the browser. Actually deploying still needs the user's hosting accounts, a domain, TLS, and a decision to expose the API, none of which an agent should do on their behalf.
+
+**Scope limit, corrected after review:** the gate is not authentication and the proxy relays anonymously. With the frontend published, the upload path is still open to anyone holding the URL. The first draft of the runbook said the token gate "closes exactly that", which overstated it. `docs/DEPLOYMENT.md` now names the limit in the threat model, repeats it next to the wiring, and lists access control in front of the frontend as a required step rather than an optional hardening. D-053's objection is therefore narrowed, not removed.
+
+**Rejected:** inventing a per-user authentication layer, which this prototype has no accounts for and which would be a far larger change than a gap closure; and putting the token in a `NEXT_PUBLIC_*` variable, which would publish it in the browser bundle.
+
+### D-063 — The fallback snapshot is exported from live output, never hand-edited
+
+**Decision:** `backend/scripts/export_demo_fallback.py` regenerates `app/demo_fallback.json` from a live-seeded database and refuses to export any document whose `extraction_source` is not `gemini`.
+
+**Reasoning:** The snapshot is labelled `manual_fallback` and described as previously verified live extraction. Hand-adding the new `holding_pattern` values would have quietly made that description false.

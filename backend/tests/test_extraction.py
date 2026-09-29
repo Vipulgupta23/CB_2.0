@@ -17,6 +17,7 @@ from app.models import (
     DocumentType,
     ExtractedField,
     ExtractionResult,
+    HoldingPattern,
     MechanismType,
     NominationAction,
     PolicyKind,
@@ -49,6 +50,7 @@ def sample_result() -> ExtractionResult:
                 policy_kind=PolicyKind.UNKNOWN,
                 mwpa_section_6_applies=TriState.UNKNOWN,
                 assignment_status=AssignmentStatus.UNKNOWN,
+                holding_pattern=HoldingPattern.SINGLE,
             )
         ],
         warnings=[],

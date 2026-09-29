@@ -56,21 +56,26 @@ docker compose exec backend python scripts/seed_demo.py --yes --mode live
 - The deterministic conflict engine: all seven documented rules, in Python, with no AI in any rule decision.
 - The readiness score, the results UI, the vault, the simulated fix, and re-running detection.
 - Honest failure handling: a provider failure keeps the upload, marks the document failed, and stays retryable.
+- A simulated fix is reversible per field. Edits stack, undo unwinds them one at a time, and the log records the previous and new value of each. Re-extraction still refuses to discard edits without `force=true`, and a forced re-extraction clears the document's fields and their edit history together.
+- Holding pattern is extracted, so the bank, mutual-fund, and supersession rules stay inside their documented single-holder scope and report `GAP-JOINT-HOLDING` for a joint asset.
 
 **Deliberately simplified for the hackathon**
 
-- No authentication or user accounts. A persona is one synthetic individual, and both Compose ports bind to loopback only.
+- No user accounts. A persona is one synthetic individual, and both Compose ports bind to loopback only. An optional shared-token gate exists for hosting and is off by default; see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 - SQLite instead of Postgres, with no migration framework. Schema changes reset the synthetic database.
 - No institution integration of any kind. Nothing here connects to a real bank, insurer, AMC, or the NPS.
-- The frontend has no automated test runner; it is verified by lint, production build, rendered-DOM checks, and screenshots.
 - Fallback seed data is a snapshot of previously verified live extraction, labelled `manual_fallback` in the interface.
 
 **Known limitations, recorded not hidden**
 
-- The extraction schema has no holding-pattern field, so the bank and mutual-fund rules cannot exclude joint holdings (`backend/rules/RULES.md` section 13).
-- A simulated fix has no undo. The original source quote stays visible, and re-extraction restores the extracted value.
+- Nothing here is deployed. The token gate and the server-side proxy are built and tested, but no hosting, TLS, or managed storage exists.
+- `holding_pattern` of `unknown` is treated as in scope, so a jointly held asset that does not state its holding pattern can still be reported as a conflict (`backend/rules/RULES.md` section 14).
 - The Gemini free tier may use submitted content to improve Google's products, which is why only synthetic documents are permitted.
 - Gap markers (`GAP-*`) are engine labels for cases the rules exclude. They are not approved legal rules.
+- Frontend tests cover the three components that carry the safety-critical labels, not the pages or the proxy route.
+- No seed document is a joint holding, so `GAP-JOINT-HOLDING` and its amber vault badge cannot be reached by clicking through the shipped demo. Both are covered by backend and component tests. Adding a joint-holding document would change the headline demo score, so it was left out.
+- Leaving rule scope raises the score, because a gap deducts 3 where a conflict deducts 25 (`backend/rules/RULES.md` section 14). A gap never means the asset is fine.
+- The `API_TOKEN` gate is one shared secret, not authentication, and the frontend proxy relays anonymously. A published frontend still needs access control in front of it; see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## The rule set and its sources
 
@@ -116,6 +121,10 @@ Copy `.env.example` to `.env`. Never commit a real key.
 | `MAX_UPLOAD_BYTES` | `10485760` | Per-document upload limit |
 | `CORS_ORIGINS` | `http://localhost:3000` | Browser origin allowlist |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | API URL compiled into the browser bundle |
+| `API_TOKEN` | empty | Optional shared bearer token. Empty leaves the API open, which is correct on loopback only |
+| `BACKEND_URL` | `http://backend:8000` | Backend address used by the frontend proxy route when `NEXT_PUBLIC_API_URL` is `/api/backend` |
+
+Hosting this anywhere other than loopback needs both `API_TOKEN` and the proxy wiring. [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) is the runbook and states plainly what is not done.
 
 ## API
 
@@ -128,6 +137,7 @@ Copy `.env.example` to `.env`. Never commit a real key.
 | `GET /documents/{id}` | Extraction status and source-backed fields |
 | `POST /documents/{id}/extract` | Retry extraction; refuses to discard simulated fixes without `force=true` |
 | `PATCH /fields/{id}` | Apply a simulated synthetic correction |
+| `POST /fields/{id}/undo` | Revert the most recent simulated fix; `409` when there is nothing to undo |
 | `POST /personas/{id}/detections` | Run detection and score; `?explain=false` skips model wording |
 | `GET /personas/{id}/detections/latest` | Most recent run |
 
@@ -137,13 +147,14 @@ Copy `.env.example` to `.env`. Never commit a real key.
 cd backend
 python3 -m venv .venv
 .venv/bin/python -m pip install --requirement requirements.txt
-.venv/bin/python -m pytest              # 95 tests
+.venv/bin/python -m pytest              # 120 tests
 .venv/bin/uvicorn app.main:app --reload
 ```
 
 ```bash
 cd frontend
 npm ci
+npm test                                # 19 component tests, Vitest + Testing Library
 npm run lint && npm run build
 npm run dev
 ```
@@ -156,16 +167,24 @@ cd backend
 .venv/bin/python scripts/verify_phase3_live.py   # seven demo PDFs vs the manifest
 ```
 
+The fallback snapshot must stay a record of real extraction output rather than hand-written values. Regenerate it only from a live seed:
+
+```bash
+cd backend
+.venv/bin/python scripts/seed_demo.py --yes --mode live
+.venv/bin/python scripts/export_demo_fallback.py   # refuses anything not extraction_source=gemini
+```
+
 ## Repository layout
 
 ```text
 backend/app/       FastAPI app, rules engine, scoring, extraction, schema
 backend/rules/     RULES.md — the authoritative rule set and its sources
 backend/scripts/   demo seed and live verification scripts
-backend/tests/     95 backend tests
-frontend/          Next.js results UI and vault
+backend/tests/     120 backend tests
+frontend/          Next.js results UI, vault, and the deployment proxy route
 seed_data/         synthetic demo documents, sources, and expected outcomes
-docs/              PRD and pitch talking points
+docs/              PRD, pitch talking points, and the deployment runbook
 reports/           per-phase completion reports
 ```
 

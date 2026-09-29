@@ -149,3 +149,15 @@ Last updated: 2026-09-29
 ## Phase boundary
 
 All seven phases are implemented. Nothing further is in progress.
+
+## Recorded gap closure (post-Phase 7, requested by the user)
+
+- [x] Gap 1 — joint holdings: added `holding_pattern` to the schema, extraction prompt, and models; gated `BANK-WILL-001`, `MF-WILL-001`, and `RECORD-SUPERSESSION-001`; emit `GAP-JOINT-HOLDING`.
+- [x] Gap 1 — documented the new scope and the `unknown` decision in `RULES.md` section 14, and added a test that fails if any gap marker the engine can emit is undocumented.
+- [x] Gap 2 — undo: added the `field_edits` audit table, `POST /fields/{id}/undo`, and an Undo button that appears only for an edited field.
+- [x] Gap 3 — frontend tests: Vitest, Testing Library, and jsdom at pinned versions; 19 component tests behind `npm test`.
+- [x] Gap 4 — deployment readiness: optional `API_TOKEN` gate (off by default, `/health` exempt), server-side proxy route, `docs/DEPLOYMENT.md`.
+- [x] Regenerated the fallback snapshot from a live seed with a script that refuses non-live data.
+- [x] Pass 120 backend tests and 19 frontend tests; frontend lint and production build clean.
+- [x] Re-verified the demo numbers after every change: conflict persona 75 with one `BANK-WILL-001`, clean persona 100, fix raises 75 to 100, undo returns it to 75.
+- [ ] Gap 4 — an actual deployment. Blocked on the user's hosting accounts and a decision to expose the API; see `docs/DEPLOYMENT.md`.

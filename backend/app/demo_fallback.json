@@ -16,7 +16,7 @@
             "named_person": "Anika Demo-Mehta",
             "relationship": "daughter",
             "mechanism_type": "bequest",
-            "share_percent": 100.0,
+            "share_percent": null,
             "source_text": "I give all my interest in the savings account at Sampurna Demo Bank Ltd., account reference SB-DEMO-4821, to my daughter Anika Demo-Mehta.",
             "source_locator": "Clause 3.1",
             "confidence": 1.0,
@@ -25,7 +25,8 @@
             "explicit_nomination_action": "none",
             "policy_kind": "unknown",
             "mwpa_section_6_applies": "unknown",
-            "assignment_status": "unknown"
+            "assignment_status": "unknown",
+            "holding_pattern": "unknown"
           },
           {
             "document_group_id": "2",
@@ -35,7 +36,7 @@
             "named_person": "Anika Demo-Mehta",
             "relationship": "daughter",
             "mechanism_type": "bequest",
-            "share_percent": 100.0,
+            "share_percent": null,
             "source_text": "I give the proceeds attributable to Aarohan Demo Life policy reference LIFE-DEMO-7710 to my daughter Anika Demo-Mehta",
             "source_locator": "Clause 3.2",
             "confidence": 1.0,
@@ -44,7 +45,8 @@
             "explicit_nomination_action": "none",
             "policy_kind": "life",
             "mwpa_section_6_applies": "unknown",
-            "assignment_status": "unknown"
+            "assignment_status": "unknown",
+            "holding_pattern": "unknown"
           },
           {
             "document_group_id": "3",
@@ -54,7 +56,7 @@
             "named_person": "Anika Demo-Mehta",
             "relationship": "daughter",
             "mechanism_type": "bequest",
-            "share_percent": 100.0,
+            "share_percent": null,
             "source_text": "I give all units in Nivesh Demo AMC folio reference MF-DEMO-2040 to my daughter Anika Demo-Mehta.",
             "source_locator": "Clause 3.3",
             "confidence": 1.0,
@@ -63,7 +65,8 @@
             "explicit_nomination_action": "none",
             "policy_kind": "unknown",
             "mwpa_section_6_applies": "unknown",
-            "assignment_status": "unknown"
+            "assignment_status": "unknown",
+            "holding_pattern": "unknown"
           }
         ]
       },
@@ -89,7 +92,8 @@
             "explicit_nomination_action": "none",
             "policy_kind": "unknown",
             "mwpa_section_6_applies": "unknown",
-            "assignment_status": "unknown"
+            "assignment_status": "unknown",
+            "holding_pattern": "single"
           }
         ]
       },
@@ -115,7 +119,8 @@
             "explicit_nomination_action": "none",
             "policy_kind": "life",
             "mwpa_section_6_applies": "false",
-            "assignment_status": "none"
+            "assignment_status": "none",
+            "holding_pattern": "single"
           }
         ]
       },
@@ -141,7 +146,8 @@
             "explicit_nomination_action": "none",
             "policy_kind": "unknown",
             "mwpa_section_6_applies": "unknown",
-            "assignment_status": "unknown"
+            "assignment_status": "unknown",
+            "holding_pattern": "single"
           }
         ]
       }
@@ -166,14 +172,15 @@
             "mechanism_type": "bequest",
             "share_percent": null,
             "source_text": "I give all my interest in the individual savings account at Sampurna Demo Bank Ltd., account reference SB-DEMO-8120, to my spouse Mira Demo-Sen.",
-            "source_locator": "page 1, clause 2.1",
+            "source_locator": "Clause 2.1",
             "confidence": 1.0,
             "registration_status": "unknown",
             "registration_date": null,
             "explicit_nomination_action": "none",
             "policy_kind": "unknown",
             "mwpa_section_6_applies": "unknown",
-            "assignment_status": "unknown"
+            "assignment_status": "unknown",
+            "holding_pattern": "single"
           },
           {
             "document_group_id": "2",
@@ -185,14 +192,15 @@
             "mechanism_type": "bequest",
             "share_percent": null,
             "source_text": "I give the proceeds attributable to Aarohan Demo Life policy reference LIFE-DEMO-9912 to my spouse Mira Demo-Sen",
-            "source_locator": "page 1, clause 2.2",
+            "source_locator": "Clause 2.2",
             "confidence": 1.0,
             "registration_status": "unknown",
             "registration_date": null,
             "explicit_nomination_action": "none",
             "policy_kind": "life",
             "mwpa_section_6_applies": "unknown",
-            "assignment_status": "unknown"
+            "assignment_status": "unknown",
+            "holding_pattern": "unknown"
           }
         ]
       },
@@ -211,14 +219,15 @@
             "mechanism_type": "nominee",
             "share_percent": 100.0,
             "source_text": "Mira Demo-Sen Spouse 100%",
-            "source_locator": "page 1",
+            "source_locator": "page 1, table row 1",
             "confidence": 1.0,
             "registration_status": "confirmed",
             "registration_date": "2025-09-22",
             "explicit_nomination_action": "none",
             "policy_kind": "unknown",
             "mwpa_section_6_applies": "unknown",
-            "assignment_status": "unknown"
+            "assignment_status": "unknown",
+            "holding_pattern": "single"
           }
         ]
       },
@@ -244,7 +253,8 @@
             "explicit_nomination_action": "none",
             "policy_kind": "life",
             "mwpa_section_6_applies": "false",
-            "assignment_status": "none"
+            "assignment_status": "none",
+            "holding_pattern": "single"
           }
         ]
       }
