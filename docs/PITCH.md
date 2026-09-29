@@ -44,6 +44,9 @@ Never. That is the discipline that makes it usable. It says these two documents 
 **"What happens when the API fails?"**
 The upload is kept, the document is marked failed, and it is retryable. If AI wording fails, the finding still appears with its deterministic summary and sources. We also ship a clearly labelled pre-verified fallback for the demo, and the interface says when data is fallback rather than live.
 
+**"Can you undo a fix you just demonstrated?"**
+Yes. Every simulated fix is logged with its previous and new value, and undo unwinds them one at a time. The score follows: 75 becomes 100 on the fix and returns to 75 on the undo. Re-extraction refuses to discard your edits unless you force it.
+
 ## Why this is a company, not a feature
 
 - **The wedge**: a sharp, free-to-try tool that finds real conflicts. The value is immediate and needs no institutional partnership.
@@ -56,11 +59,12 @@ The upload is kept, the document is marked failed, and it is retryable. If AI wo
 - Not connected to any bank, insurer, AMC, or the NPS.
 - Not a legal opinion, and not exhaustive of Indian succession law.
 - Not tested on real documents; every document in this demo is synthetic and marked as such.
-- Joint holdings are out of scope today because the extraction schema has no holding-pattern field. It is written down as a known gap.
+- Joint holdings are recognised and deliberately excluded from the rules. A joint asset is reported as "manual review required", not as a conflict. A document that does not state its holding pattern is still checked, and that residual risk is written down.
+- Not deployed. There is no hosted URL, no accounts, and no authentication beyond an optional shared token built for hosting.
 
 ## If asked what is next
 
-1. A holding-pattern field so joint accounts are correctly excluded rather than flagged.
-2. An audit log so a user can see and undo a change.
-3. Life-event reminders, since a marriage silently invalidates certain NPS nominations.
-4. A reviewed expansion of the rule set, one sourced rule at a time.
+1. Life-event reminders, since a marriage silently invalidates certain NPS nominations.
+2. A reviewed expansion of the rule set, one sourced rule at a time, starting with the asset types currently excluded.
+3. A hosted demo behind real access control.
+4. Postgres and a migration path, replacing the single-file SQLite the prototype resets on schema change.
