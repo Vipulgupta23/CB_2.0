@@ -73,6 +73,9 @@ Still open, and honestly so: no hosting provider, domain, TLS, or managed databa
 | Fallback seed after regenerating the snapshot | conflict persona 75, clean persona 100, one `BANK-WILL-001` |
 | Simulated fix then undo | 75 to 100, undo back to 75, `BANK-WILL-001` returns |
 | Gap markers in code versus `RULES.md` | all seven documented; enforced by a test |
+| Fresh clone to a working demo | 41 s, no API key, with Docker layers already cached locally |
+| Token gate and proxy against a running stack | direct 401, proxied 200, multipart forwarded intact |
+| Fallback exporter against a database with a simulated fix | refused, snapshot left untouched |
 
 The core demo numbers are unchanged from Phase 5 onward: 75 for the conflict persona with a single `BANK-WILL-001` finding, 100 for the clean persona, 100 after the simulated fix.
 
