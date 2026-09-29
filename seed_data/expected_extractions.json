@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "synthetic_only": true,
+  "conflict_persona": {
+    "name": "Aarav Demo-Mehta",
+    "documents": [
+      {
+        "path": "conflict_persona/documents/01_will.pdf",
+        "document_type": "will",
+        "document_date": "2026-01-12",
+        "fields": [
+          ["bank_account", "Sampurna Demo Bank Ltd.", "SB-DEMO-4821", "Anika Demo-Mehta", "daughter", "bequest", null],
+          ["insurance_policy", "Aarohan Demo Life", "LIFE-DEMO-7710", "Anika Demo-Mehta", "daughter", "bequest", null],
+          ["mutual_fund_folio", "Nivesh Demo AMC", "MF-DEMO-2040", "Anika Demo-Mehta", "daughter", "bequest", null]
+        ]
+      },
+      {
+        "path": "conflict_persona/documents/02_bank_nomination.pdf",
+        "document_type": "bank_nomination",
+        "document_date": "2023-05-15",
+        "fields": [["bank_account", "Sampurna Demo Bank Ltd.", "SB-DEMO-4821", "Kavya Demo-Mehta", "spouse", "nominee", 100]]
+      },
+      {
+        "path": "conflict_persona/documents/03_insurance_nomination.pdf",
+        "document_type": "insurance_nomination",
+        "document_date": "2025-08-10",
+        "fields": [["insurance_policy", "Aarohan Demo Life", "LIFE-DEMO-7710", "Anika Demo-Mehta", "daughter", "beneficiary_nominee", 100]]
+      },
+      {
+        "path": "conflict_persona/documents/04_mutual_fund_nomination.pdf",
+        "document_type": "mutual_fund_nomination",
+        "document_date": "2025-08-11",
+        "fields": [["mutual_fund_folio", "Nivesh Demo AMC", "MF-DEMO-2040", "Anika Demo-Mehta", "daughter", "nominee", 100]]
+      }
+    ],
+    "expected_conflicts": [
+      {
+        "rule_id": "BANK-WILL-001",
+        "asset_reference": "SB-DEMO-4821",
+        "will_person": "Anika Demo-Mehta",
+        "nominee_person": "Kavya Demo-Mehta",
+        "legal_winner": null
+      }
+    ]
+  },
+  "clean_persona": {
+    "name": "Rohan Demo-Sen",
+    "documents": [
+      {
+        "path": "clean_persona/documents/01_will.pdf",
+        "document_type": "will",
+        "document_date": "2026-01-10",
+        "fields": [
+          ["bank_account", "Sampurna Demo Bank Ltd.", "SB-DEMO-8120", "Mira Demo-Sen", "spouse", "bequest", null],
+          ["insurance_policy", "Aarohan Demo Life", "LIFE-DEMO-9912", "Mira Demo-Sen", "spouse", "bequest", null]
+        ]
+      },
+      {
+        "path": "clean_persona/documents/02_bank_nomination.pdf",
+        "document_type": "bank_nomination",
+        "document_date": "2025-09-20",
+        "fields": [["bank_account", "Sampurna Demo Bank Ltd.", "SB-DEMO-8120", "Mira Demo-Sen", "spouse", "nominee", 100]]
+      },
+      {
+        "path": "clean_persona/documents/03_insurance_nomination.pdf",
+        "document_type": "insurance_nomination",
+        "document_date": "2025-09-21",
+        "fields": [["insurance_policy", "Aarohan Demo Life", "LIFE-DEMO-9912", "Mira Demo-Sen", "spouse", "beneficiary_nominee", 100]]
+      }
+    ],
+    "expected_conflicts": []
+  }
+}

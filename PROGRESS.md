@@ -6,8 +6,8 @@ Last updated: 2026-09-29
 
 - [x] **Phase 0 — Setup:** approved by user on 2026-09-29.
 - [x] **Phase 1 — Legal rule research:** approved by user on 2026-09-29.
-- [ ] **Phase 2 — Document upload and AI extraction:** implementation and 26 automated tests pass; awaiting Gemini free-tier key and live five-fixture manual review.
-- [ ] **Phase 3 — Synthetic demo documents**
+- [x] **Phase 2 — Document upload and AI extraction:** approved by user on 2026-09-29.
+- [x] **Phase 3 — Synthetic demo documents:** seven PDFs generated and live-extraction verified; awaiting user review.
 - [ ] **Phase 4 — Deterministic conflict detection engine**
 - [ ] **Phase 5 — Readiness score and results UI**
 - [ ] **Phase 6 — Polish and demo readiness**
@@ -60,8 +60,23 @@ Last updated: 2026-09-29
 - [x] Add legacy-schema detection and interrupted/racing extraction safeguards.
 - [x] Pass 29 tests locally and in Docker.
 - [x] Write Phase 2 decisions and completion report.
-- [ ] User review and exact approval phrase: `APPROVED PHASE 2`.
+- [x] User approval received: `APPROVED PHASE 2`.
+
+## Phase 3 checklist
+
+- [x] Define one deliberate-conflict persona and one clean control persona.
+- [x] Use invented names, institutions, references, and signature placeholders only.
+- [x] Author seven visibly marked synthetic HTML sources.
+- [x] Generate seven one-page PDF demo uploads.
+- [x] Document exact expected extraction and Phase 4 outcomes.
+- [x] Validate every PDF opens, is marked synthetic, and contains expected references.
+- [x] Upload every PDF through the real Gemini extraction endpoint.
+- [x] Verify all stored classifications and fields against the manifest.
+- [x] Confirm the intended mismatch is exactly a `BANK-WILL-001` instance.
+- [x] Confirm aligned life-policy and mutual-fund records avoid accidental conflicts.
+- [x] Write Phase 3 decisions and completion report.
+- [ ] User review and exact approval phrase: `APPROVED PHASE 3`.
 
 ## Phase boundary
 
-No polished Phase 3 demo documents, conflict-detection logic, scoring, or vault behavior has been started. Phase 3 must not begin before exact Phase 2 approval.
+No deterministic conflict engine, score, results UI, or vault behavior has been started. Phase 4 must not begin before exact Phase 3 approval.

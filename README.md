@@ -6,9 +6,9 @@ JeevanSetu is a hackathon prototype for finding inconsistencies across synthetic
 
 ## Current status
 
-**Phases 0 and 1 are complete; Phase 2 is awaiting live-key verification:** the repository scaffold, FastAPI service, Next.js interface, expanded SQLite schema, secure synthetic-only upload API, Gemini structured-extraction adapter, retryable failure path, and seven-rule India-scoped candidate set are implemented. Conflict-engine implementation, scoring, and vault workflows are not implemented and are not represented as working.
+**Phases 0–2 are approved; Phase 3 documents are complete and awaiting review:** the secure synthetic upload/Gemini extraction flow works, and seven generated demo PDFs now cover one deliberate bank nominee-versus-will mismatch plus a clean control persona. The conflict engine, scoring, and vault workflows are not implemented and are not represented as working.
 
-The Phase 1 rules are review-oriented, not authoritative legal conclusions. Phase 2 uses Gemini only for classification/extraction; deterministic Python remains solely responsible for future conflict decisions. The Gemini free tier may use submitted content to improve Google's products, so this build permits synthetic documents only.
+The Phase 1 rules are review-oriented, not authoritative legal conclusions. Gemini is used only for classification/extraction; deterministic Python remains solely responsible for future conflict decisions. The Gemini free tier may use submitted content to improve Google's products, so this build permits synthetic documents only.
 
 ## One-command start
 
@@ -136,3 +136,12 @@ Run the five live extraction-only fixtures after configuring `.env`:
 ```bash
 docker compose run --rm -e JEEVANSETU_API_URL=http://backend:8000 backend python scripts/verify_phase2_live.py
 ```
+
+## Phase 3 demo documents
+
+`seed_data/MANIFEST.md` documents seven generated synthetic PDFs and their editable HTML sources. `seed_data/expected_extractions.json` is the machine-readable verification target.
+
+- Conflict persona: Aarav Demo-Mehta — one intended `BANK-WILL-001` mismatch on `SB-DEMO-4821`; the will names Anika Demo-Mehta and bank nomination names Kavya Demo-Mehta.
+- Clean persona: Rohan Demo-Sen — matching bank and life-policy people, with no expected conflict.
+
+These are synthetic examples, not legal forms or legal advice. The expected conflict is a future deterministic test target; Phase 3 does not implement or run a conflict engine.

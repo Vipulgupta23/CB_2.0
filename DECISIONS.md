@@ -170,3 +170,29 @@ This is a dated, append-only project log. Legal-rule entries must identify a pub
 **Decision:** Treat the user's instruction “you verify and continue” as delegation of the Phase 2 manual comparison. Every stored field from five live synthetic extractions was compared against its source fixture. All classifications, dates, references, people, relationships, mechanisms, shares, registration states, policy scope, unknown legal statuses, and source excerpts were reasonable and source-supported.
 
 **Observed fallback:** The fifth (NPS) request received a transient free-tier provider error. The document remained stored with an honest failed status and succeeded through `POST /documents/11/extract`; no extraction was fabricated.
+
+## 2026-09-29 — Phase 3
+
+### D-025 — Phase 2 approved; Phase 3 unlocked
+
+**Decision:** The user supplied `APPROVED PHASE 2`. Phase 3 may create synthetic demo documents; Phase 4 remains blocked.
+
+### D-026 — One isolated BANK-WILL-001 demo conflict
+
+**Decision:** The conflict persona uses exact account reference `SB-DEMO-4821` at fictional Sampurna Demo Bank Ltd. The will names daughter Anika Demo-Mehta; the bank nomination names spouse Kavya Demo-Mehta. This is an expected `BANK-WILL-001` review conflict, not a statement that either person legally prevails.
+
+**Reasoning/source:** The documents satisfy the approved rule's same-asset/different-person predicate in `backend/rules/RULES.md`. Life policy `LIFE-DEMO-7710` and mutual-fund folio `MF-DEMO-2040` both name Anika across sources so the demo does not accidentally create extra conflicts.
+
+### D-027 — Clean control persona
+
+**Decision:** Rohan Demo-Sen's will and forms all name spouse Mira Demo-Sen for exact bank reference `SB-DEMO-8120` and life-policy reference `LIFE-DEMO-9912`. Expected conflicts are empty, without claiming the estate plan is legally complete.
+
+### D-028 — Reviewable HTML sources and committed PDFs
+
+**Decision:** Keep editable HTML under each persona's `source/` folder and generated one-page PDFs under `documents/`. Every page visibly says synthetic/not valid/not legal advice. Use invented institutions and references containing `DEMO`; include no real IDs, addresses, contact details, signatures, or account data.
+
+### D-029 — Nonnumeric “all” bequests do not require an inferred share
+
+**Decision:** The manifest accepts `share_percent` as null or 100 for will language giving “all” of an asset. Nomination forms retain exact numeric percentages.
+
+**Reasoning:** Both representations preserve the named recipient, but null avoids forcing a numeric fact absent from the clause. Conflict rules compare named people and exact assets, not will share percentages in this demo.
