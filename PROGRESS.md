@@ -4,9 +4,9 @@ Last updated: 2026-09-29
 
 ## Phase status
 
-- [x] **Phase 0 — Setup:** implementation and automated acceptance checks complete; awaiting user review.
-- [ ] **Phase 1 — Legal rule research:** blocked until the user replies exactly `APPROVED PHASE 0`.
-- [ ] **Phase 2 — Document upload and AI extraction**
+- [x] **Phase 0 — Setup:** approved by user on 2026-09-29.
+- [x] **Phase 1 — Legal rule research:** seven-rule candidate documented and validated; awaiting user review.
+- [ ] **Phase 2 — Document upload and AI extraction:** blocked until the user replies exactly `APPROVED PHASE 1`.
 - [ ] **Phase 3 — Synthetic demo documents**
 - [ ] **Phase 4 — Deterministic conflict detection engine**
 - [ ] **Phase 5 — Readiness score and results UI**
@@ -32,6 +32,19 @@ Last updated: 2026-09-29
 - [x] Write Phase 0 documentation and report.
 - [ ] User review and exact approval phrase: `APPROVED PHASE 0`.
 
+## Phase 1 checklist
+
+- [x] Review primary India sources for supported asset types.
+- [x] Define seven candidate deterministic rules.
+- [x] Document source/reasoning, scope, predicates, severity, and examples for every rule.
+- [x] Preserve legal uncertainty and prohibit winner/ownership conclusions.
+- [x] Define a mandatory disclaimer and deterministic finding contract.
+- [x] List unsupported cases and required Phase 2 extraction fields.
+- [x] Verify all five primary-source links return HTTP 200.
+- [x] Pass 12 local and 12 in-container tests.
+- [x] Write Phase 1 decisions and completion report.
+- [ ] User review and exact approval phrase: `APPROVED PHASE 1`.
+
 ## Phase boundary
 
-No legal research, extraction integration, document generation, detection logic, scoring, or vault behavior has been started. Phase 1 must not begin before exact Phase 0 approval.
+No extraction integration, document generation, detection logic, scoring, or vault behavior has been started. Phase 2 must not begin before exact Phase 1 approval.

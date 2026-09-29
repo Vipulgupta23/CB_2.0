@@ -6,9 +6,9 @@ JeevanSetu is a hackathon prototype for finding inconsistencies across synthetic
 
 ## Current status
 
-**Phase 0 is complete:** the repository scaffold, FastAPI service, Next.js interface, SQLite draft schema, and two-service Docker Compose stack are working. Document upload, AI extraction, legal rules, conflict detection, scoring, and vault workflows are not implemented yet and are not represented as working.
+**Phases 0 and 1 are complete:** the repository scaffold, FastAPI service, Next.js interface, SQLite draft schema, and two-service Docker Compose stack are working, and a seven-rule India-scoped candidate rule set is documented in `backend/rules/RULES.md`. Document upload, AI extraction, conflict-engine implementation, scoring, and vault workflows are not implemented yet and are not represented as working.
 
-Phase 1 will research a narrow India-scoped rule set in `backend/rules/RULES.md`. No legal rules have been adopted yet.
+The Phase 1 rules are review-oriented, not authoritative legal conclusions. They cover narrow bank, life-insurance, mutual-fund, NPS, and nomination-supersession cases; every finding must retain source excerpts and the mandatory disclaimer. Phase 2 remains blocked until the user approves Phase 1.
 
 ## One-command start
 

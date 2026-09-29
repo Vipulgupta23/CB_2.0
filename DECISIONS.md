@@ -79,3 +79,53 @@ This is a dated, append-only project log. Legal-rule entries must identify a pub
 **Decision:** Docker persistence validation inserts the persona name `Synthetic Persistence Check`; the SQLite file is ignored by Git.
 
 **Reasoning:** No real personal or financial data is needed for infrastructure validation.
+
+## 2026-09-29 — Phase 1
+
+### D-013 — Phase 0 approved; Phase 1 unlocked
+
+**Decision:** The user supplied the exact phrase `APPROVED PHASE 0`. Phase 1 may proceed; Phase 2 remains blocked pending exact Phase 1 approval.
+
+### D-014 — Rules identify review conflicts, not legal winners
+
+**Decision:** Every rule reports document inconsistency, registration uncertainty, or an express validity warning. No rule determines ownership, heirship, will validity, probate effect, or which person legally prevails.
+
+**Reasoning:** Institutional payment/transmission rules and beneficial succession can differ, and outcomes can depend on personal law and facts outside the extracted documents. This is reflected in the mandatory disclaimer and per-rule scope notes.
+
+### D-015 — Seven candidate rules and their controlling sources
+
+**Decision:** Adopt the following candidate set for user review. Full citations, source reasoning, pseudocode, exclusions, and examples are in `backend/rules/RULES.md`.
+
+| Rule | Primary source |
+|---|---|
+| `BANK-WILL-001` | Supreme Court of India, *Ram Chander Talwar v. Devender Kumar Talwar*, applying Banking Regulation Act section 45ZA |
+| `LIFE-NOTICE-001` | Insurance Act, 1938, sections 39(2)–(3), current consolidated text hosted by IFSCA |
+| `LIFE-WILL-001` | Insurance Act, 1938, sections 39(6)–(7), with sections 38 and 39(12) as exclusions |
+| `MF-WILL-001` | SEBI Circular dated 28 February 2025 and its Annexure A for mutual-fund folios |
+| `NPS-WILL-001` | PFRDA NPS Exit Regulations, consolidated through 20 July 2026, Chapter VII |
+| `NPS-VALIDITY-001` | Same PFRDA regulation, nomination provisos (iv)–(vi) |
+| `RECORD-SUPERSESSION-001` | The registration/receipt/supersession provisions in the bank, insurance, MF, and NPS sources above |
+
+### D-016 — Explicit uncertainty and exclusions
+
+**Decision:** Do not automate outcomes for joint accounts, survivorship clauses, lockers, general insurance, MWP Act section 6 policies, active insurance assignments, demat shares, trusts, foreign assets, legal-heir identity, or ambiguous family relationships. NPS nominee-versus-will beneficial ownership is explicitly unresolved by the cited PFRDA source; `NPS-WILL-001` therefore requires review and declares no winner.
+
+**Reasoning:** A reliable, narrow rule is preferable to an unsupported broad rule. Unknown legal status produces a manual-review/scope gap, not a guessed conflict.
+
+### D-017 — Do not treat the March 2026 SEBI consultation as operative law
+
+**Decision:** Record the consultation as a re-check warning only. Do not source an active rule from its draft circular.
+
+**Reasoning:** The located document requests public comments and contains placeholders. Phase 6 must check whether SEBI has since issued a final superseding circular.
+
+### D-018 — Phase 1 informs Phase 2 extraction fields without changing the schema yet
+
+**Decision:** `RULES.md` records additional provenance/status fields needed by deterministic rules: registration and acknowledgement status, explicit nomination action, policy type, MWP/assignment scope, confirmed family context, marriage date, document grouping, and manually confirmed aliases. Do not alter the Phase 0 database in this research phase.
+
+**Reasoning:** Rule research should drive extraction requirements, but schema/API implementation belongs to Phase 2 and requires Phase 1 approval.
+
+### D-019 — PDF parser is research-only
+
+**Decision:** Install `pypdf==6.19.0` only in the ignored local virtual environment to inspect official PDF sources. Do not add it to application requirements.
+
+**Reasoning:** The official sources were PDF-only and the web text fetcher does not parse PDFs. The package is not needed by the product and no source document or real personal data was saved to the repository.
