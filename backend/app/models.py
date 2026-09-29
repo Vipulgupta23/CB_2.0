@@ -254,3 +254,25 @@ class FieldUpdate(StrictModel):
         if not cleaned:
             raise ValueError("value must not be blank")
         return cleaned
+
+
+class EstateCaseItemRead(StrictModel):
+    institution_name: str
+    asset_type: str
+    asset_type_label: str
+    asset_reference: str
+    named_people: list[str]
+    has_nomination_on_record: bool
+    illustrative_steps: list[str]
+
+
+class EstateCaseRead(StrictModel):
+    """Phase 7 stretch concept. Never a working institution integration."""
+
+    concept: Literal[True]
+    label: str
+    notice: str
+    disclaimer: str
+    unresolved_conflicts: int
+    readiness_score: int | None
+    items: list[EstateCaseItemRead]

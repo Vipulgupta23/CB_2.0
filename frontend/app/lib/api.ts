@@ -113,3 +113,27 @@ export function updateField(fieldId: number, namedPerson: string) {
     body: JSON.stringify({ named_person: namedPerson }),
   });
 }
+
+export type EstateCaseItem = {
+  institution_name: string;
+  asset_type: string;
+  asset_type_label: string;
+  asset_reference: string;
+  named_people: string[];
+  has_nomination_on_record: boolean;
+  illustrative_steps: string[];
+};
+
+export type EstateCase = {
+  concept: true;
+  label: string;
+  notice: string;
+  disclaimer: string;
+  unresolved_conflicts: number;
+  readiness_score: number | null;
+  items: EstateCaseItem[];
+};
+
+export function estateCaseConcept(personaId: number) {
+  return request<EstateCase>(`/personas/${personaId}/estate-case`);
+}

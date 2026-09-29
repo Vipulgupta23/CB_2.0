@@ -170,3 +170,9 @@ reports/           per-phase completion reports
 ```
 
 Project history lives in [`PROGRESS.md`](PROGRESS.md) and [`DECISIONS.md`](DECISIONS.md), which records every architectural decision, deviation, and legal source with its reasoning.
+
+## Stretch concept: estate case view
+
+`GET /personas/{id}/estate-case` and the page at `/personas/{id}/estate-case` show an illustrative per-institution settlement checklist derived from the synthetic vault.
+
+This is a **concept / future feature**, labelled as such in the API payload, a persistent page banner, every asset card, and the footer. No bank, insurer, asset management company, or the NPS is connected. The steps are generic illustrations, not any institution's real requirements, and are not sourced legal or procedural rules — which is why they appear nowhere in `RULES.md` and have no rule IDs. The generator touches neither the conflict engine nor the score.

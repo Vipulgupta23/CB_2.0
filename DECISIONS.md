@@ -334,3 +334,27 @@ This is a dated, append-only project log. Legal-rule entries must identify a pub
 **Decision:** Skip the optional live deployment. The demo runs on local Docker Compose bound to loopback.
 
 **Reasoning:** The API is unauthenticated and holds a provider key. D-022 requires access controls and a data-handling review before any public exposure, which is out of scope for this hackathon. Recorded as not done rather than partially attempted.
+
+## 2026-09-29 — Phase 7 (stretch)
+
+### D-054 — Phase 6 approved; stretch feature unlocked
+
+**Decision:** The user supplied `APPROVED PHASE 6`. The PRD section 5.6 concept view may be built.
+
+### D-055 — The concept lives on its own page, not inside the results
+
+**Decision:** The estate-case view is a separate route reached from one clearly marked card. No existing result surface changed.
+
+**Reasoning:** The stretch feature must not compromise the core demo's polish or credibility. Keeping it separate means it can be skipped in a time-constrained pitch and cannot be mistaken for a result.
+
+### D-056 — Concept labelling is enforced in the payload and the UI
+
+**Decision:** The endpoint returns `concept: true`, the fixed label `Concept / Future Feature`, and a notice stating that no institution is connected. The page shows a persistent banner, a dashed concept panel, an "Illustrative only" label on every card, the disclaimer, and a footer repeating the limitation.
+
+**Reasoning:** Non-negotiable principle 4 requires the stretch feature to be visibly labelled. Putting the label in the API response means a future consumer cannot drop it.
+
+### D-057 — Illustrative steps are not sourced rules
+
+**Decision:** The per-asset steps are generic placeholders and are deliberately not added to `RULES.md`, given no rule IDs, and excluded from detection and scoring. The generator imports no AI client and makes no network call.
+
+**Reasoning:** Adding unsourced procedural claims to the rule document would undermine the discipline that every rule is sourced. These steps are illustrative interface content, not findings.

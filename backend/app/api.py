@@ -6,12 +6,15 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 
 from app.detection import SCOPE_GAP, detect, finalize
+from app.estate_case import build_estate_case
 from app.explanations import ExplanationError, generate_explanation
 from app.extraction import ExtractionError, extract_document
 from app.models import (
     DetectionRunRead,
     DocumentListRead,
     DocumentRead,
+    EstateCaseItemRead,
+    EstateCaseRead,
     ExtractionFailureRead,
     FieldUpdate,
     PersonaCreate,
@@ -338,3 +341,55 @@ def apply_simulated_fix(field_id: int, payload: FieldUpdate) -> DocumentRead:
         return get_document(document_id)
     except RecordNotFoundError as exc:
         raise not_found(exc) from exc
+
+
+@router.get(
+    "/personas/{persona_id}/estate-case",
+    response_model=EstateCaseRead,
+    tags=["concept"],
+)
+def read_estate_case_concept(persona_id: int) -> EstateCaseRead:
+    """Concept / future feature: an illustrative per-institution settlement checklist.
+
+    Nothing here is an institution integration. The steps are generic illustrations
+    derived from the synthetic vault, and no request is made to any third party.
+    """
+    try:
+        records = load_field_records(persona_id)
+    except RecordNotFoundError as exc:
+        raise not_found(exc) from exc
+
+    unresolved = 0
+    score: int | None = None
+    try:
+        latest = get_latest_detection_run(persona_id)
+        unresolved = len(latest.conflicts)
+        score = latest.readiness_score
+    except RecordNotFoundError:
+        unresolved = 0
+
+    case = build_estate_case(
+        records,
+        unresolved_conflicts=unresolved,
+        readiness_score=score,
+    )
+    return EstateCaseRead(
+        concept=True,
+        label=case.label,
+        notice=case.notice,
+        disclaimer=case.disclaimer,
+        unresolved_conflicts=case.unresolved_conflicts,
+        readiness_score=case.readiness_score,
+        items=[
+            EstateCaseItemRead(
+                institution_name=item.institution_name,
+                asset_type=item.asset_type,
+                asset_type_label=item.asset_type_label,
+                asset_reference=item.asset_reference,
+                named_people=list(item.named_people),
+                has_nomination_on_record=item.has_nomination_on_record,
+                illustrative_steps=list(item.illustrative_steps),
+            )
+            for item in case.items
+        ],
+    )

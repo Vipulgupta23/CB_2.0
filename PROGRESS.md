@@ -10,8 +10,8 @@ Last updated: 2026-09-29
 - [x] **Phase 3 — Synthetic demo documents:** approved by user on 2026-09-29.
 - [x] **Phase 4 — Deterministic conflict detection engine:** approved by user on 2026-09-29.
 - [x] **Phase 5 — Readiness score and results UI:** approved by user on 2026-09-29.
-- [x] **Phase 6 — Polish and demo readiness:** fresh clone reproduces the demo in 96s; awaiting user review.
-- [ ] **Phase 7 — Stretch concept/future estate-case view**
+- [x] **Phase 6 — Polish and demo readiness:** approved by user on 2026-09-29.
+- [x] **Phase 7 — Stretch concept estate-case view:** built as a separate, clearly labelled page; awaiting user review.
 
 ## Phase 0 checklist
 
@@ -129,8 +129,23 @@ Last updated: 2026-09-29
 - [x] Pass frontend lint and production build.
 - [x] Reproduce the full demo from a fresh clone in 96 seconds without an API key.
 - [x] Write Phase 6 decisions and completion report.
-- [ ] User review and exact approval phrase: `APPROVED PHASE 6`.
+- [x] User approval received: `APPROVED PHASE 6`.
+
+## Phase 7 checklist (stretch)
+
+- [x] Build the concept view as a separate page, leaving the core demo surfaces unchanged.
+- [x] Derive illustrative steps deterministically from the synthetic vault.
+- [x] Return `concept: true` and the concept label in the API payload itself.
+- [x] Show a persistent banner, per-card illustrative labels, the disclaimer, and a footer notice.
+- [x] State plainly that no institution is connected.
+- [x] Keep the generator away from detection, scoring, AI, and the network.
+- [x] Exclude the illustrative steps from `RULES.md` because they are not sourced rules.
+- [x] Pass 104 backend tests locally and in Docker.
+- [x] Pass frontend lint and production build.
+- [x] Confirm the core demo still scores 75 with one `BANK-WILL-001` after the change.
+- [x] Write Phase 7 decisions and completion report.
+- [ ] User review and exact approval phrase: `APPROVED PHASE 7`.
 
 ## Phase boundary
 
-The Section 5.6 stretch estate-case view has not been started. Phase 7 must not begin before exact Phase 6 approval, and only if the core demo stays polished.
+All seven phases are implemented. Nothing further is in progress.

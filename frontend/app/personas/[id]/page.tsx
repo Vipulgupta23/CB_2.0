@@ -219,6 +219,23 @@ export default function PersonaPage() {
           onRerun={handleRerun}
           busy={busy}
         />
+
+        <section className="rounded-2xl border-2 border-dashed border-purple-300 bg-purple-50/60 p-5">
+          <p className="text-xs font-bold uppercase tracking-wide text-purple-900">
+            Concept / Future Feature
+          </p>
+          <p className="mt-2 text-sm leading-6 text-purple-950">
+            A separate illustration shows what a per-institution settlement checklist could
+            look like later. It is not a working integration and is not part of the results
+            above.
+          </p>
+          <Link
+            href={`/personas/${personaId}/estate-case`}
+            className="mt-3 inline-block rounded-md border border-purple-400 bg-white px-3 py-1.5 text-sm font-medium text-purple-900"
+          >
+            View the concept
+          </Link>
+        </section>
       </main>
 
       <footer className="border-t border-slate-200 bg-white px-6 py-5 text-center text-sm text-slate-600">
