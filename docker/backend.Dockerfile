@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir --requirement requirements.txt
 
 COPY backend/app ./app
 COPY backend/rules ./rules
+COPY backend/scripts ./scripts
 COPY backend/tests ./tests
 COPY backend/pytest.ini ./pytest.ini
 

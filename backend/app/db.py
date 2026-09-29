@@ -6,6 +6,11 @@ from pathlib import Path
 
 DEFAULT_DATABASE_PATH = Path(__file__).resolve().parents[1] / "data" / "jeevansetu.db"
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
+SCHEMA_VERSION = 2
+
+
+class SchemaVersionError(RuntimeError):
+    """Raised when a resettable legacy synthetic database needs explicit removal."""
 
 
 def get_database_path() -> Path:
@@ -23,8 +28,26 @@ def get_connection() -> sqlite3.Connection:
     return connection
 
 
+def _table_columns(connection: sqlite3.Connection, table: str) -> set[str]:
+    return {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
+
+
 def init_db() -> None:
-    """Apply the idempotent draft schema to the configured database."""
+    """Apply the schema, rejecting legacy shapes that require an explicit reset."""
     schema = SCHEMA_PATH.read_text(encoding="utf-8")
     with get_connection() as connection:
+        document_columns = _table_columns(connection, "documents")
+        if document_columns and "content_sha256" not in document_columns:
+            raise SchemaVersionError(
+                "Legacy synthetic database detected. Stop the backend, delete "
+                f"{get_database_path()}, and restart to create the Phase 2 schema."
+            )
         connection.executescript(schema)
+        connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        connection.execute(
+            """
+            UPDATE documents
+            SET status = 'failed', error_code = 'extraction_interrupted'
+            WHERE status = 'extracting'
+            """
+        )

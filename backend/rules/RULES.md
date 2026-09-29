@@ -8,7 +8,7 @@
 
 ## 1. Purpose and hard boundary
 
-This file is the single source of truth for what JeevanSetu may call a conflict or validity warning. Phase 4 must implement these predicates directly in Python. Claude may classify documents, extract source-backed fields, and turn an already-determined finding into plain language; Claude must never decide whether a rule matched, set severity, choose a legal winner, or remove the disclaimer.
+This file is the single source of truth for what JeevanSetu may call a conflict or validity warning. Phase 4 must implement these predicates directly in Python. Gemini may classify documents, extract source-backed fields, and turn an already-determined finding into plain language; Gemini must never decide whether a rule matched, set severity, choose a legal winner, or remove the disclaimer.
 
 A finding means **the synthetic records need reconciliation or professional review**. It does not establish ownership, probate validity, heirship, entitlement, or which document prevails. The sources below address institutional payment/transmission and selected nomination effects; personal law, account ownership, policy assignment, trusts, court orders, and document validity can change an actual outcome.
 
@@ -87,7 +87,7 @@ Phase 2 must preserve every value's `source_text`, document ID, page/field locat
 - `document_group_id`: groups all nominees listed on one form
 - `manually_confirmed_aliases`: synthetic persona-level pairs explicitly confirmed to be the same person
 
-Unknown must remain unknown. Claude must not fill missing legal status from implication or general knowledge.
+Unknown must remain unknown. Gemini must not fill missing legal status from implication or general knowledge.
 
 ## 4. Deterministic matching helpers
 
@@ -114,7 +114,7 @@ Rules must not fuzzy-match assets or people. If an asset reference is missing, t
 
 ## 5. Finding contract
 
-Every matched rule produces deterministic data before any Claude call:
+Every matched rule produces deterministic data before any Gemini call:
 
 ```text
 Finding:
@@ -136,7 +136,7 @@ Finding:
 
 > Not legal advice. This is a first-pass document consistency check based on a limited, India-scoped rule set. A licensed legal professional and the relevant institution should review the documents and current law.
 
-If Claude explanation generation fails, the deterministic summary, scope note, suggested actions, sources, and disclaimer must still be returned. Claude output must not add a claim that one person legally wins.
+If Gemini explanation generation fails, the deterministic summary, scope note, suggested actions, sources, and disclaimer must still be returned. Gemini output must not add a claim that one person legally wins.
 
 ## 6. Severity definitions
 
@@ -408,7 +408,7 @@ Unsupported cases must be labeled `manual review required` and must not be silen
 
 ## 10. Phase 4 implementation acceptance map
 
-Each of the seven rules requires at least one positive and one negative unit test. Tests must assert rule ID, severity, both sources, deterministic summary, scope note, suggested actions, and the exact disclaimer. Tests must run with a stub/disabled Claude client to prove conflict decisions do not call AI.
+Each of the seven rules requires at least one positive and one negative unit test. Tests must assert rule ID, severity, both sources, deterministic summary, scope note, suggested actions, and the exact disclaimer. Tests must run with a stub/disabled Gemini client to prove conflict decisions do not call AI.
 
 | Rule | Positive fixture | Minimum negative fixture |
 |---|---|---|

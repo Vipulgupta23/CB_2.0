@@ -5,8 +5,8 @@ Last updated: 2026-09-29
 ## Phase status
 
 - [x] **Phase 0 — Setup:** approved by user on 2026-09-29.
-- [x] **Phase 1 — Legal rule research:** seven-rule candidate documented and validated; awaiting user review.
-- [ ] **Phase 2 — Document upload and AI extraction:** blocked until the user replies exactly `APPROVED PHASE 1`.
+- [x] **Phase 1 — Legal rule research:** approved by user on 2026-09-29.
+- [ ] **Phase 2 — Document upload and AI extraction:** implementation and 26 automated tests pass; awaiting Gemini free-tier key and live five-fixture manual review.
 - [ ] **Phase 3 — Synthetic demo documents**
 - [ ] **Phase 4 — Deterministic conflict detection engine**
 - [ ] **Phase 5 — Readiness score and results UI**
@@ -30,7 +30,7 @@ Last updated: 2026-09-29
 - [x] Verify a synthetic SQLite row survives `docker compose down` and restart.
 - [x] Verify browser-rendered `Backend connected` and `Backend unreachable` states.
 - [x] Write Phase 0 documentation and report.
-- [ ] User review and exact approval phrase: `APPROVED PHASE 0`.
+- [x] User approval received: `APPROVED PHASE 0`.
 
 ## Phase 1 checklist
 
@@ -43,8 +43,25 @@ Last updated: 2026-09-29
 - [x] Verify all five primary-source links return HTTP 200.
 - [x] Pass 12 local and 12 in-container tests.
 - [x] Write Phase 1 decisions and completion report.
-- [ ] User review and exact approval phrase: `APPROVED PHASE 1`.
+- [x] User approval received: `APPROVED PHASE 1`.
+
+## Phase 2 checklist
+
+- [x] Add synthetic-attested PDF/image/text upload validation with a 10 MiB limit.
+- [x] Add generated local storage keys and content hashes.
+- [x] Add strict structured extraction and source evidence contracts.
+- [x] Integrate Gemini 3.1 Flash-Lite after explicit provider deviation.
+- [x] Add persona, upload, retrieval, listing, and retry API routes.
+- [x] Preserve honest failed status and retained uploads on provider failure.
+- [x] Add five extraction-only synthetic fixtures.
+- [x] Verify all five fixtures live against Gemini and compare every stored field.
+- [x] Demonstrate a transient free-tier failure succeeding through stored retry.
+- [x] Bind the local Compose demo to loopback only.
+- [x] Add legacy-schema detection and interrupted/racing extraction safeguards.
+- [x] Pass 29 tests locally and in Docker.
+- [x] Write Phase 2 decisions and completion report.
+- [ ] User review and exact approval phrase: `APPROVED PHASE 2`.
 
 ## Phase boundary
 
-No extraction integration, document generation, detection logic, scoring, or vault behavior has been started. Phase 2 must not begin before exact Phase 1 approval.
+No polished Phase 3 demo documents, conflict-detection logic, scoring, or vault behavior has been started. Phase 3 must not begin before exact Phase 2 approval.

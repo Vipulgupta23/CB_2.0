@@ -62,3 +62,29 @@ def test_cors_does_not_allow_unknown_origin(
     )
 
     assert "access-control-allow-origin" not in response.headers
+
+
+def test_cors_preflight_allows_document_post(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "health.db"))
+
+    async def send_preflight() -> httpx.Response:
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                return await client.options(
+                    "/personas/1/documents",
+                    headers={
+                        "Origin": "http://localhost:3000",
+                        "Access-Control-Request-Method": "POST",
+                    },
+                )
+
+    response = asyncio.run(send_preflight())
+
+    assert response.status_code == 200
+    assert "POST" in response.headers["access-control-allow-methods"]

@@ -2,13 +2,14 @@
 
 import os
 import sqlite3
-from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api import router
 from app.db import get_connection, init_db
 
 
@@ -26,17 +27,21 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="JeevanSetu API",
-    version="0.1.0",
-    description="Synthetic-data-only estate document continuity demo.",
+    version="0.2.0",
+    description=(
+        "Synthetic-data-only estate document extraction demo. "
+        "Do not upload real documents. Not legal advice."
+    ),
     lifespan=lifespan,
 )
 app.add_middleware(
     CORSMiddleware,
     allow_origins=configured_origins(),
     allow_credentials=False,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+app.include_router(router)
 
 
 @app.get("/health", tags=["system"])

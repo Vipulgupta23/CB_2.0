@@ -69,7 +69,7 @@ def test_disclaimer_and_deterministic_ai_boundary_are_explicit() -> None:
     document = read_rules()
 
     assert MANDATORY_DISCLAIMER in document
-    assert "Claude must never decide whether a rule matched" in document
+    assert "Gemini must never decide whether a rule matched" in document
     assert "must still be returned" in document
 
 

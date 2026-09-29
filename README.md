@@ -1,14 +1,14 @@
 # JeevanSetu
 
-JeevanSetu is a hackathon prototype for finding inconsistencies across synthetic wills, nomination forms, and insurance beneficiary forms. The planned product will use Claude for document classification, structured extraction, and plain-language explanations. Conflict decisions will be made only by deterministic Python rules documented and sourced in one place.
+JeevanSetu is a hackathon prototype for finding inconsistencies across synthetic wills, nomination forms, and insurance beneficiary forms. The product uses the Gemini Developer API for document classification, structured extraction, and later plain-language explanations. Conflict decisions remain deterministic Python rules documented and sourced in one place.
 
 > **Synthetic demo data only. Not legal advice.** Do not upload real personal, financial, identity, or estate documents. Any future conflict result is informational and should be reviewed by a licensed advisor.
 
 ## Current status
 
-**Phases 0 and 1 are complete:** the repository scaffold, FastAPI service, Next.js interface, SQLite draft schema, and two-service Docker Compose stack are working, and a seven-rule India-scoped candidate rule set is documented in `backend/rules/RULES.md`. Document upload, AI extraction, conflict-engine implementation, scoring, and vault workflows are not implemented yet and are not represented as working.
+**Phases 0 and 1 are complete; Phase 2 is awaiting live-key verification:** the repository scaffold, FastAPI service, Next.js interface, expanded SQLite schema, secure synthetic-only upload API, Gemini structured-extraction adapter, retryable failure path, and seven-rule India-scoped candidate set are implemented. Conflict-engine implementation, scoring, and vault workflows are not implemented and are not represented as working.
 
-The Phase 1 rules are review-oriented, not authoritative legal conclusions. They cover narrow bank, life-insurance, mutual-fund, NPS, and nomination-supersession cases; every finding must retain source excerpts and the mandatory disclaimer. Phase 2 remains blocked until the user approves Phase 1.
+The Phase 1 rules are review-oriented, not authoritative legal conclusions. Phase 2 uses Gemini only for classification/extraction; deterministic Python remains solely responsible for future conflict decisions. The Gemini free tier may use submitted content to improve Google's products, so this build permits synthetic documents only.
 
 ## One-command start
 
@@ -99,7 +99,10 @@ Copy `.env.example` to `.env` only when overrides are needed. Never commit `.env
 | `DATABASE_PATH` | `/app/data/jeevansetu.db` | SQLite path inside the backend container |
 | `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated browser origin allowlist |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | API URL compiled into the browser bundle |
-| `ANTHROPIC_API_KEY` | empty | Reserved for Phase 2; unused in Phase 0 |
+| `GEMINI_API_KEY` | empty | Gemini Developer API key; backend only, never exposed to the browser |
+| `GEMINI_MODEL` | `gemini-3.1-flash-lite` | Multimodal extraction model |
+| `UPLOAD_DIR` | `/app/data/uploads` | Generated storage location for synthetic uploads |
+| `MAX_UPLOAD_BYTES` | `10485760` | Per-document upload limit |
 
 ## Repository layout
 
@@ -115,3 +118,21 @@ seed_data/         Synthetic-only future demo fixtures
 ```
 
 See `PROGRESS.md` for phase status, `DECISIONS.md` for decisions and deviations, and `reports/PHASE_0_REPORT.md` for validation evidence.
+
+## Phase 2 extraction API
+
+The backend exposes:
+
+- `POST /personas` — create an explicitly synthetic persona.
+- `POST /personas/{id}/documents` — upload and immediately extract a synthetic PDF, PNG, JPEG, WebP, or UTF-8 text file (10 MiB default limit).
+- `GET /documents/{id}` — inspect extraction status and source-backed structured fields.
+- `POST /documents/{id}/extract` — retry extraction from the retained synthetic upload.
+- `GET /personas/{id}/documents` — list a persona's documents and fields.
+
+The Gemini key is backend-only. Free-tier content may be used by Google to improve its products; never submit real documents. The local Compose ports bind to `127.0.0.1` and are not a public deployment configuration.
+
+Run the five live extraction-only fixtures after configuring `.env`:
+
+```bash
+docker compose run --rm -e JEEVANSETU_API_URL=http://backend:8000 backend python scripts/verify_phase2_live.py
+```

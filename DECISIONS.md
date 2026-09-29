@@ -129,3 +129,44 @@ This is a dated, append-only project log. Legal-rule entries must identify a pub
 **Decision:** Install `pypdf==6.19.0` only in the ignored local virtual environment to inspect official PDF sources. Do not add it to application requirements.
 
 **Reasoning:** The official sources were PDF-only and the web text fetcher does not parse PDFs. The package is not needed by the product and no source document or real personal data was saved to the repository.
+
+## 2026-09-29 — Phase 2
+
+### D-020 — User-approved provider deviation: Gemini replaces Claude
+
+**Decision:** Replace the unfinished Claude API adapter with the Gemini Developer API for Phase 2 classification/extraction and future plain-language explanations. Use `google-genai==2.25.0` and default to `gemini-3.1-flash-lite`. Do not retain a second provider abstraction.
+
+**Prompt/PRD conflict:** The original non-negotiable principle and PRD specify Claude. The user subsequently instructed: “use Gemini Developer API free tier instead of Claude for Phase 2 extraction and explanations.” The later explicit instruction wins. The product, configuration, rules documentation, tests, and reports must say Gemini rather than implying Claude remains integrated.
+
+**Reasoning:** The user does not have paid Anthropic API access. Google documents a Gemini Developer API free tier, structured JSON output, and PDF/image understanding. `gemini-3.1-flash-lite` is documented as multimodal and intended for simple extraction. The provider swap does not change the approved legal rules or deterministic conflict boundary.
+
+**Privacy/cost disclosure:** Google states that free-tier content may be used to improve its products. Therefore this free-tier integration is restricted to synthetic documents and must never be used with real personal, identity, financial, insurance, or estate material. A paid/private deployment would require a separate data-handling review.
+
+**Sources checked:**
+
+- Gemini Developer API pricing: https://ai.google.dev/gemini-api/docs/pricing
+- Structured outputs: https://ai.google.dev/gemini-api/docs/structured-output
+- Document/PDF processing: https://ai.google.dev/gemini-api/docs/document-processing
+- Gemini 3.1 Flash-Lite model: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite
+
+### D-021 — Phase 2 storage and schema reset policy
+
+**Decision:** Keep five SQLite tables and extend the Phase 0 columns directly. Use `PRAGMA user_version = 2`; detect the legacy Phase 0 shape before applying indexes and return a precise synthetic-database reset instruction. Recover any `extracting` rows to `failed/extraction_interrupted` at startup.
+
+**Reasoning:** The database is synthetic and resettable, so a migration framework remains unnecessary. Silent partial upgrades or obscure missing-column crashes are not acceptable.
+
+### D-022 — Local upload service is loopback-only
+
+**Decision:** Bind Compose ports 3000 and 8000 to `127.0.0.1`. The boolean synthetic attestation is a user warning and request gate, not proof that content is synthetic. Do not deploy the keyed upload API publicly without trusted access controls and a separate data-handling review.
+
+**Reasoning:** CORS and caller attestation do not prevent arbitrary network clients from forwarding real material to a free-tier provider.
+
+### D-023 — Extraction failure semantics
+
+**Decision:** Retain the uploaded synthetic file for retry but delete stale extracted-field rows when an attempt fails. Serialize extraction transitions, return HTTP 409 for an already-running attempt, recover interrupted attempts on startup, and distinguish retryable transient provider failures from configuration/permanent provider failures.
+
+### D-024 — Live Gemini acceptance evidence
+
+**Decision:** Treat the user's instruction “you verify and continue” as delegation of the Phase 2 manual comparison. Every stored field from five live synthetic extractions was compared against its source fixture. All classifications, dates, references, people, relationships, mechanisms, shares, registration states, policy scope, unknown legal statuses, and source excerpts were reasonable and source-supported.
+
+**Observed fallback:** The fifth (NPS) request received a transient free-tier provider error. The document remained stored with an honest failed status and succeeded through `POST /documents/11/extract`; no extraction was fabricated.
