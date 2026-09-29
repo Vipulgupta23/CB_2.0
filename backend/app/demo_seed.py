@@ -27,7 +27,7 @@ from app.scoring import completeness_gaps, readiness_score
 from app.uploads import get_upload_dir
 
 FALLBACK_PATH = Path(__file__).with_name("demo_fallback.json")
-PERSONA_KEYS = ("conflict_persona", "clean_persona")
+PERSONA_KEYS = ("conflict_persona", "clean_persona", "nps_persona", "joint_persona")
 
 
 def seed_root() -> Path:
@@ -49,10 +49,28 @@ def reset_storage() -> None:
 
 
 def _insert_persona(connection, persona: dict) -> int:
+    """Insert a persona including its confirmed context.
+
+    ``owner_has_family`` and ``marriage_date`` are stated facts on the persona record, never
+    extracted from a document, because the NPS validity rule may not infer a marriage from
+    silence. Without them NPS-VALIDITY-001 cannot fire for a seeded persona at all.
+    """
+    context = persona.get("persona_context") or {}
     return int(
         connection.execute(
-            "INSERT INTO personas (name, description) VALUES (?, ?)",
-            (persona["name"], persona.get("description")),
+            """
+            INSERT INTO personas (
+                name, description, owner_has_family, marriage_date,
+                family_context_source_text
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                persona["name"],
+                persona.get("description"),
+                context.get("owner_has_family") or "unknown",
+                context.get("marriage_date"),
+                context.get("family_context_source_text"),
+            ),
         ).lastrowid
     )
 

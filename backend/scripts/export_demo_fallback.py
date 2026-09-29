@@ -24,6 +24,8 @@ from app.demo_seed import FALLBACK_PATH, PERSONA_KEYS  # noqa: E402
 PERSONA_NAMES = {
     "conflict_persona": "Aarav Demo-Mehta",
     "clean_persona": "Rohan Demo-Sen",
+    "nps_persona": "Priya Demo-Iyer",
+    "joint_persona": "Meera Demo-Rao",
 }
 
 FIELD_COLUMNS = (
@@ -52,8 +54,8 @@ def main() -> int:
     connection = sqlite3.connect(get_database_path())
     connection.row_factory = sqlite3.Row
 
-    personas = connection.execute("SELECT id, name FROM personas ORDER BY id").fetchall()
-    by_name = {row["name"]: int(row["id"]) for row in personas}
+    personas = connection.execute("SELECT * FROM personas ORDER BY id").fetchall()
+    by_name = {row["name"]: row for row in personas}
     missing = [name for name in PERSONA_NAMES.values() if name not in by_name]
     if missing:
         print(f"error: database is missing seeded personas: {missing}", file=sys.stderr)
@@ -61,7 +63,8 @@ def main() -> int:
 
     snapshot: dict[str, dict] = {}
     for key in PERSONA_KEYS:
-        persona_id = by_name[PERSONA_NAMES[key]]
+        persona_row = by_name[PERSONA_NAMES[key]]
+        persona_id = int(persona_row["id"])
         documents = []
         for document in connection.execute(
             """
@@ -114,6 +117,13 @@ def main() -> int:
         snapshot[key] = {
             "name": PERSONA_NAMES[key],
             "description": "Synthetic demo persona",
+            # Stated context, carried through so the fallback seed reproduces the same
+            # findings as the live seed. NPS-VALIDITY-001 depends entirely on these.
+            "persona_context": {
+                "owner_has_family": persona_row["owner_has_family"],
+                "marriage_date": persona_row["marriage_date"],
+                "family_context_source_text": persona_row["family_context_source_text"],
+            },
             "documents": documents,
         }
 

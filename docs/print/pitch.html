@@ -19,11 +19,11 @@
         <dt>Rule set</dt>
         <dd>7 sourced rules, version 1.0.0-candidate</dd>
         <dt>Demo data</dt>
-        <dd>7 synthetic documents, 2 personas</dd>
+        <dd>11 synthetic documents, 4 personas</dd>
         <dt>Tests</dt>
-        <dd>128 backend, 19 frontend</dd>
+        <dd>136 backend, 33 frontend</dd>
         <dt>Deployed</dt>
-        <dd>No. Runs locally via Docker Compose</dd>
+        <dd>Render, behind a shared credential</dd>
       </dl>
       <div class="stop">
         <span class="label">Read this first</span>
@@ -130,8 +130,49 @@
     </table>
     <p class="small muted">
       The whole demo runs from a fresh clone in about 40 seconds with no API key, using a
-      clearly labelled pre-verified extraction snapshot. With a key, the same seven PDFs are
-      re-extracted live in about 35 seconds.
+      clearly labelled pre-verified extraction snapshot.
+    </p>
+
+    <h3>Two more personas, for the questions that follow</h3>
+    <p>
+      These exist to show that the tool distinguishes three different kinds of answer rather
+      than labelling everything a conflict.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 40mm">Persona</th>
+          <th>What it demonstrates</th>
+          <th class="num">Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Priya Demo-Iyer</strong><br /><span class="small muted">validity warning</span></td>
+          <td>
+            Her NPS nomination predates her confirmed marriage date, so
+            <code>NPS-VALIDITY-001</code> questions that one document's standing rather than
+            reporting a disagreement between two. The will-mismatch rule is deliberately
+            suppressed here instead of stacked on top, which is the rule ordering made visible.
+          </td>
+          <td class="num">75</td>
+        </tr>
+        <tr>
+          <td><strong>Meera Demo-Rao</strong><br /><span class="small muted">manual review required</span></td>
+          <td>
+            Her nomination and will name different people for the same account, which would
+            normally be <code>BANK-WILL-001</code>. It is not, because the account is held
+            jointly and that rule covers individually held accounts. The tool reports
+            <code>GAP-JOINT-HOLDING</code> and declines to judge.
+          </td>
+          <td class="num">97</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="small muted">
+      Say the 97 out loud before a judge spots it: leaving rule scope <em>raises</em> the
+      score, because a gap deducts 3 where a conflict deducts 25. A gap is not a clean bill of
+      health, and the card says manual review required.
     </p>
 
     <h2>5. The credibility answers</h2>
@@ -220,8 +261,13 @@
         state its holding pattern is still checked, and that residual risk is written down.
       </li>
       <li>
-        Not deployed. There is no hosted URL and no user accounts. An optional shared-token
-        gate exists for hosting and is off by default.
+        Four of the seven rules are not exercised by any seeded persona and are covered only
+        by unit tests. The demo shows one rule firing, one suppressed, one gap, and one clean
+        result.
+      </li>
+      <li>
+        The hosted instance has no user accounts, no persistent storage, and one shared
+        password. It sleeps after 15 minutes idle.
       </li>
       <li>
         The per-institution settlement checklist is labelled <strong>Concept / Future
@@ -258,9 +304,10 @@
         <tr><td>Sourced deterministic rules</td><td class="num">7</td></tr>
         <tr><td>Labelled out-of-scope markers (never presented as rules)</td><td class="num">7</td></tr>
         <tr><td>Fields extracted per named person, each with source text</td><td class="num">18</td></tr>
-        <tr><td>Synthetic demo documents</td><td class="num">7</td></tr>
-        <tr><td>Backend tests</td><td class="num">128</td></tr>
-        <tr><td>Frontend component tests</td><td class="num">19</td></tr>
+        <tr><td>Synthetic demo documents</td><td class="num">11</td></tr>
+        <tr><td>Demo personas, one per possible outcome</td><td class="num">4</td></tr>
+        <tr><td>Backend tests</td><td class="num">136</td></tr>
+        <tr><td>Frontend tests</td><td class="num">33</td></tr>
         <tr><td>Fresh clone to a working demo</td><td class="num">~40 s</td></tr>
         <tr><td>AI calls involved in any conflict decision</td><td class="num">0</td></tr>
       </tbody>

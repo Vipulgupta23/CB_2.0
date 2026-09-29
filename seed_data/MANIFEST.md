@@ -37,6 +37,61 @@ No other conflict is intended: the life-policy and mutual-fund nomination names 
 
 No conflict. The will and registered-looking nomination form name Mira Demo-Sen for each exact asset reference. This is a synthetic control case, not proof that any real estate plan is legally complete.
 
+## NPS validity persona — Priya Demo-Iyer
+
+Added so the demo shows a `validity_warning`, which is a different kind of finding from a conflict: the problem is one document's own standing, not a disagreement between two.
+
+**Persona context, stated not extracted:** `owner_has_family = true`, `marriage_date = 2024-03-01`. The engine may never infer a marriage from a document's silence, so these are confirmed facts on the persona record and the interface shows them as the second source, labelled "Confirmed synthetic persona context".
+
+| Document | Date | Expected assets/people |
+|---|---:|---|
+| `nps_persona/documents/01_will.pdf` | 2026-01-15 | 1100-DEMO-3301 → Rohit Demo-Iyer, husband, bequest |
+| `nps_persona/documents/02_nps_nomination.pdf` | 2022-05-01 | 1100-DEMO-3301 → Nikhil Demo-Sharma, brother, 100%; **no acknowledgement**, so registration is `unconfirmed` |
+
+### Intended outcome
+
+- **Rule:** `NPS-VALIDITY-001`, finding type `validity_warning`, severity high.
+- **Why:** the nomination is dated 1 May 2022, before the confirmed marriage date of 1 March 2024, and no later confirmed nomination replaces it. Two independent branches of the rule are satisfied — the pre-marriage date, and a nominee whose relationship is explicitly outside the regulation's family definition — so the finding does not depend on a single extracted value.
+- **`NPS-WILL-001` is deliberately suppressed** for this nomination group. When a document's own validity is in doubt, adding "it also disagrees with the will" is noise. This is the rule-ordering behaviour documented in `backend/rules/RULES.md` section 8, made visible in the demo.
+- The form must stay unacknowledged. An acknowledgement dated after the marriage would prove a later valid nomination and correctly silence the rule.
+
+## Joint holding persona — Meera Demo-Rao
+
+Added so the demo shows a `scope_gap`: the engine declining to judge an asset its rules do not cover, rather than guessing.
+
+| Document | Date | Expected assets/people |
+|---|---:|---|
+| `joint_persona/documents/01_will.pdf` | 2026-01-18 | SB-DEMO-6602 → Arjun Demo-Rao, son, bequest |
+| `joint_persona/documents/02_bank_nomination.pdf` | 2023-09-12 | SB-DEMO-6602 → Latika Demo-Rao, sister, 100%; **joint holders**, either or survivor; recorded 2023-09-15 |
+
+### Intended outcome
+
+- **Marker:** `GAP-JOINT-HOLDING`, finding type `scope_gap`, severity low.
+- **Why:** the nomination and the will name different people for the same account, which would normally be `BANK-WILL-001`. It is not, because the account is held jointly and that rule is scoped to individually held accounts. The engine reports *manual review required* instead.
+- The mode-of-holding line is what makes this work. The extraction prompt keys on phrases such as "joint holders" and "either or survivor", never on the number of nominees, so the form states the holding pattern explicitly.
+- Score consequence, recorded because it is counterintuitive: a gap deducts 3 where a conflict deducts 25, so this persona scores 97. Leaving rule scope raises the score. A gap never means the asset is fine.
+
+## What the four personas demonstrate together
+
+| Persona | Finding type | Rule or marker | Score |
+|---|---|---|---:|
+| Aarav Demo-Mehta | `review_conflict` | `BANK-WILL-001` | 75 |
+| Rohan Demo-Sen | none | — | 100 |
+| Priya Demo-Iyer | `validity_warning` | `NPS-VALIDITY-001` | 75 |
+| Meera Demo-Rao | `scope_gap` | `GAP-JOINT-HOLDING` | 97 |
+
+One of each outcome the engine can produce. Three of the seven approved rules remain undemonstrated by seed data and are covered only by unit tests: `LIFE-NOTICE-001`, `LIFE-WILL-001`, `MF-WILL-001`, and `NPS-WILL-001`.
+
+## Regenerating the PDFs
+
+`./seed_data/build.sh` renders every persona's HTML source to its PDF with headless Chrome. Pass persona directory names to render only those. After changing a document, re-seed in live mode and regenerate the fallback snapshot, so the pre-verified data still matches what the model actually extracts:
+
+```bash
+./seed_data/build.sh nps_persona
+cd backend && .venv/bin/python scripts/seed_demo.py --yes --mode live
+.venv/bin/python scripts/export_demo_fallback.py
+```
+
 ## Safety and scope
 
 - The names use `Demo-` and every identifier contains `DEMO`.

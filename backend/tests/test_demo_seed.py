@@ -33,7 +33,12 @@ def test_fallback_seed_reproduces_the_demo_scores(storage: None) -> None:
 
     scores = {key: run_detection(persona_ids[key]) for key in PERSONA_KEYS}
 
-    assert scores == {"conflict_persona": 75, "clean_persona": 100}
+    assert scores == {
+        "conflict_persona": 75,
+        "clean_persona": 100,
+        "nps_persona": 75,
+        "joint_persona": 97,
+    }
 
 
 def test_fallback_seed_produces_exactly_the_demo_conflict(storage: None) -> None:
@@ -86,7 +91,12 @@ def test_startup_seed_fills_an_empty_database_with_the_demo(storage: None) -> No
         key: get_latest_detection_run(persona_id).readiness_score
         for key, persona_id in seeded.items()
     }
-    assert scores == {"conflict_persona": 75, "clean_persona": 100}
+    assert scores == {
+        "conflict_persona": 75,
+        "clean_persona": 100,
+        "nps_persona": 75,
+        "joint_persona": 97,
+    }
 
 
 def test_startup_seed_leaves_an_already_seeded_database_alone(storage: None) -> None:
@@ -123,3 +133,97 @@ def test_startup_seed_is_opt_in(monkeypatch: pytest.MonkeyPatch) -> None:
     assert seed_on_startup_enabled() is False
     monkeypatch.setenv("SEED_ON_STARTUP", "TRUE")
     assert seed_on_startup_enabled() is True
+
+
+def test_nps_persona_demonstrates_the_validity_warning(storage: None) -> None:
+    """The one seeded persona that fires a validity_warning rather than a conflict."""
+    persona_ids = seed_fallback()
+    run_detection(persona_ids["nps_persona"])
+
+    run = get_latest_detection_run(persona_ids["nps_persona"])
+    finding = run.conflicts[0]
+
+    assert [c.rule_id for c in run.conflicts] == ["NPS-VALIDITY-001"]
+    assert finding.finding_type == "validity_warning"
+    assert finding.severity == "high"
+    assert finding.asset_reference == "1100-DEMO-3301"
+    # NPS-WILL-001 must stay suppressed: the document's own validity is reported first
+    # rather than stacking a second finding about the same nomination group.
+    assert "NPS-WILL-001" not in [c.rule_id for c in run.conflicts]
+    assert run.scope_gaps == []
+    assert run.readiness_score == 75
+
+
+def test_nps_persona_carries_the_confirmed_context_the_rule_depends_on(
+    storage: None,
+) -> None:
+    """Marriage status is stated on the persona record, never inferred from a document."""
+    from app.repository import load_persona_context
+
+    persona_ids = seed_fallback()
+    context = load_persona_context(persona_ids["nps_persona"])
+
+    assert context.marriage_date is not None
+    assert context.owner_has_family == "true"
+    assert context.family_context_source_text
+    assert "not extracted from any document" in context.family_context_source_text
+
+
+def test_joint_persona_reports_a_gap_instead_of_a_conflict(storage: None) -> None:
+    """The nomination and the will name different people, and it is still not a conflict."""
+    persona_ids = seed_fallback()
+    run_detection(persona_ids["joint_persona"])
+
+    run = get_latest_detection_run(persona_ids["joint_persona"])
+    gap = run.scope_gaps[0]
+
+    assert run.conflicts == []
+    assert [g.rule_id for g in run.scope_gaps] == ["GAP-JOINT-HOLDING"]
+    assert gap.finding_type == "scope_gap"
+    assert gap.severity == "low"
+    assert gap.asset_reference == "SB-DEMO-6602"
+    assert run.readiness_score == 97
+
+
+def test_the_joint_seed_document_really_is_extracted_as_jointly_held(
+    storage: None,
+) -> None:
+    """If the extraction said single or unknown, the gap above would be a false positive."""
+    persona_ids = seed_fallback()
+
+    nomination = next(
+        field
+        for document in list_documents(persona_ids["joint_persona"])
+        if document.document_type == "bank_nomination"
+        for field in document.fields
+    )
+
+    assert nomination.holding_pattern.value == "joint"
+    assert nomination.named_person == "Latika Demo-Rao"
+
+
+def test_every_seeded_persona_demonstrates_something_distinct(storage: None) -> None:
+    """Guards the pitch claim that the demo shows more than one rule outcome."""
+    persona_ids = seed_fallback()
+    for persona_id in persona_ids.values():
+        run_detection(persona_id)
+
+    outcomes = {
+        key: sorted(
+            finding.rule_id
+            for finding in (
+                get_latest_detection_run(persona_id).conflicts
+                + get_latest_detection_run(persona_id).scope_gaps
+            )
+        )
+        for key, persona_id in persona_ids.items()
+    }
+
+    assert outcomes == {
+        "conflict_persona": ["BANK-WILL-001"],
+        "clean_persona": [],
+        "nps_persona": ["NPS-VALIDITY-001"],
+        "joint_persona": ["GAP-JOINT-HOLDING"],
+    }
+    # One of each kind: a conflict, a clean result, a validity warning, and a scope gap.
+    assert len({tuple(value) for value in outcomes.values()}) == len(outcomes)

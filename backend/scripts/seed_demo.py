@@ -14,6 +14,7 @@ import hashlib
 import json
 import sys
 import time
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -44,11 +45,18 @@ def seed_live() -> dict[str, int]:
     persona_ids: dict[str, int] = {}
     for key in PERSONA_KEYS:
         entry = manifest[key]
+        # Persona context is stated in the manifest, not read out of a document: the rules
+        # treat marriage and family status as confirmed facts and must never infer them.
+        context = entry.get("persona_context") or {}
+        marriage_date = context.get("marriage_date")
         persona = create_persona(
             PersonaCreate(
                 name=entry["name"],
                 description="Synthetic demo persona",
                 synthetic_confirmed=True,
+                owner_has_family=context.get("owner_has_family") or "unknown",
+                marriage_date=date.fromisoformat(marriage_date) if marriage_date else None,
+                family_context_source_text=context.get("family_context_source_text"),
             )
         )
         persona_ids[key] = persona.id

@@ -27,8 +27,13 @@ Upload a will and the nomination forms. The tool:
 
 - **Score 75/100** for the conflict persona, with the arithmetic shown: 100 minus 25 for one high-priority conflict.
 - **One conflict card**: `BANK-WILL-001` on account `SB-DEMO-4821`. Source A is the bank nomination naming Kavya. Source B is will clause 3.1 naming Anika. Both quoted verbatim from the uploaded PDFs.
-- **Fix it live**: change the nominee in the vault, press re-run, and the score goes to **100** with the conflict cleared.
+- **Fix it live**: change the nominee in the vault, press re-run, and the score goes to **100** with the conflict cleared. Undo puts it back to 75.
 - **Contrast**: a second persona whose documents agree scores 100 with no findings.
+
+Two further personas exist for the questions that follow, showing that the tool distinguishes three different kinds of answer rather than labelling everything a conflict:
+
+- **Priya Demo-Iyer** — a *validity warning*. Her NPS nomination predates her confirmed marriage, so the finding is about that one document's standing, not a disagreement between two. The will-mismatch rule is deliberately suppressed here instead of stacked on top.
+- **Meera Demo-Rao** — *manual review required*. Her nomination and will name different people for the same account, but it is held jointly and the rule covers individually held accounts, so the tool declines to call it a conflict. Her score is higher at 97, because a gap costs less than a conflict. Worth saying out loud: a gap is not a clean bill of health.
 
 ## The credibility answers
 

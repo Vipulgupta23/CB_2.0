@@ -6,7 +6,16 @@ JeevanSetu reads a person's will, nomination forms, and insurance beneficiary fo
 
 ## What the demo shows
 
-The conflict persona has a will giving a bank account to a daughter while the registered bank nomination for that same account names a spouse. The engine reports one high-priority conflict, cites both sources, and scores the persona 75/100. Correcting the nominee in the vault and re-running detection clears the conflict and raises the score to 100. A second, clean persona produces no findings.
+The conflict persona has a will giving a bank account to a daughter while the registered bank nomination for that same account names a spouse. The engine reports one high-priority conflict, cites both sources, and scores the persona 75/100. Correcting the nominee in the vault and re-running detection clears the conflict and raises the score to 100, and undo puts it back.
+
+Four seeded personas cover one of each outcome the engine can produce:
+
+| Persona | Outcome | Rule or marker | Score |
+|---|---|---|---:|
+| Aarav Demo-Mehta | review conflict | `BANK-WILL-001` | 75 |
+| Rohan Demo-Sen | nothing found | — | 100 |
+| Priya Demo-Iyer | validity warning | `NPS-VALIDITY-001` | 75 |
+| Meera Demo-Rao | manual review required | `GAP-JOINT-HOLDING` | 97 |
 
 ![Results view](reports/assets/phase5_results.png)
 
@@ -34,8 +43,13 @@ Stop with `docker compose down`. The SQLite file lives at `backend/data/jeevanse
 2. Read the **score of 75** and the breakdown showing the arithmetic.
 3. Read the single **`BANK-WILL-001`** card: source A is the bank nomination naming Kavya, source B is will clause 3.1 naming Anika, with the scope note and disclaimer.
 4. Scroll to the **vault**, open `02_bank_nomination.pdf`, press **Simulate a fix**, change the name to `Anika Demo-Mehta`, and save.
-5. Press **Re-run detection**. The conflict clears and the score rises to **100**.
+5. Press **Re-run detection**. The conflict clears and the score rises to **100**. Press **Undo last fix** and re-run to put it back to 75.
 6. Open **Rohan Demo-Sen** to show a clean persona scoring 100 with no findings.
+
+If you have longer, two more personas show the outcomes that are not conflicts:
+
+7. **Priya Demo-Iyer** — a `validity_warning`, not a conflict. Her NPS nomination predates her confirmed marriage date, so the rule questions that document's own standing. `NPS-WILL-001` is deliberately suppressed here rather than stacked on top.
+8. **Meera Demo-Rao** — a `scope_gap`. Her bank nomination and will name different people, which would normally be `BANK-WILL-001`, but the account is held jointly and the rule is scoped to individually held accounts. The engine says manual review required instead of guessing. Note the score is *higher* at 97: a gap deducts 3 where a conflict deducts 25.
 
 ### Demo reset
 
@@ -43,7 +57,7 @@ Stop with `docker compose down`. The SQLite file lives at `backend/data/jeevanse
 # pre-verified snapshot, no API key needed, labelled in the UI as not live AI
 docker compose exec backend python scripts/seed_demo.py --yes
 
-# real Gemini extraction of the seven synthetic PDFs (needs GEMINI_API_KEY)
+# real Gemini extraction of the eleven synthetic PDFs (needs GEMINI_API_KEY)
 docker compose exec backend python scripts/seed_demo.py --yes --mode live
 ```
 
@@ -74,8 +88,8 @@ docker compose exec backend python scripts/seed_demo.py --yes --mode live
 - The Gemini free tier may use submitted content to improve Google's products, which is why only synthetic documents are permitted.
 - Gap markers (`GAP-*`) are engine labels for cases the rules exclude. They are not approved legal rules.
 - Frontend tests cover the three components that carry the safety-critical labels, not the pages or the proxy route.
-- No seed document is a joint holding, so `GAP-JOINT-HOLDING` and its amber vault badge cannot be reached by clicking through the shipped demo. Both are covered by backend and component tests. Adding a joint-holding document would change the headline demo score, so it was left out.
-- Leaving rule scope raises the score, because a gap deducts 3 where a conflict deducts 25 (`backend/rules/RULES.md` section 14). A gap never means the asset is fine.
+- Leaving rule scope raises the score, because a gap deducts 3 where a conflict deducts 25 (`backend/rules/RULES.md` section 14). A gap never means the asset is fine. The joint-holding persona scores 97 for exactly this reason.
+- Three of the seven rules are not demonstrated by any seeded persona and are covered only by unit tests: `LIFE-NOTICE-001`, `LIFE-WILL-001`, `MF-WILL-001` and `NPS-WILL-001` (the last is deliberately suppressed where it would otherwise fire).
 - The `API_TOKEN` gate is one shared secret, not authentication. The frontend credential covers the proxy, so a hosted instance is not an open relay, but neither gate identifies a caller; see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## The rule set and its sources

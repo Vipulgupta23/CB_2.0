@@ -525,8 +525,8 @@ docker compose exec backend python scripts/seed_demo.py --yes</code></pre>
         <tr>
           <td><strong>live</strong><br /><span class="small muted"><code>--mode live</code></span></td>
           <td>
-            Uploads all seven synthetic PDFs and extracts each one with Gemini. Needs a key,
-            takes about 35 seconds, retries on provider errors.
+            Uploads all eleven synthetic PDFs and extracts each one with Gemini. Needs a key,
+            takes a few minutes, retries on provider errors.
           </td>
         </tr>
       </tbody>
@@ -538,36 +538,71 @@ docker compose exec backend python scripts/seed_demo.py --yes</code></pre>
       <code>manual_fallback</code> label would be a lie.
     </p>
 
-    <h3>The two personas</h3>
+    <h3>The four personas, one per possible outcome</h3>
     <table>
       <thead>
-        <tr><th style="width: 40mm">Persona</th><th>Documents</th><th class="num">Score</th></tr>
+        <tr>
+          <th style="width: 38mm">Persona</th>
+          <th>Documents and what they produce</th>
+          <th class="num">Score</th>
+        </tr>
       </thead>
       <tbody>
         <tr>
-          <td><strong>Aarav Demo-Mehta</strong><br /><span class="small muted">the conflict</span></td>
+          <td><strong>Aarav Demo-Mehta</strong><br /><span class="small muted">review conflict</span></td>
           <td>
             Will, bank nomination, insurance nomination, mutual fund nomination. The will leaves
-            account <code>SB-DEMO-4821</code> to Anika; the bank form names Kavya. The insurance
-            and mutual fund records agree with the will.
+            account <code>SB-DEMO-4821</code> to Anika; the bank form names Kavya, so
+            <code>BANK-WILL-001</code> fires. The insurance and mutual fund records agree with
+            the will, so those rules correctly stay silent.
           </td>
           <td class="num">75</td>
         </tr>
         <tr>
-          <td><strong>Rohan Demo-Sen</strong><br /><span class="small muted">the clean contrast</span></td>
+          <td><strong>Rohan Demo-Sen</strong><br /><span class="small muted">nothing found</span></td>
           <td>Will, bank nomination, insurance nomination, all naming the same person.</td>
           <td class="num">100</td>
+        </tr>
+        <tr>
+          <td><strong>Priya Demo-Iyer</strong><br /><span class="small muted">validity warning</span></td>
+          <td>
+            Will plus an NPS nomination dated before her confirmed marriage, with no
+            registration acknowledgement. <code>NPS-VALIDITY-001</code> questions that
+            document's own standing, and <code>NPS-WILL-001</code> is suppressed for the same
+            group rather than stacked on top. Her marriage date is stated on the persona
+            record, never extracted, because the rules may not infer family status from a
+            document's silence.
+          </td>
+          <td class="num">75</td>
+        </tr>
+        <tr>
+          <td><strong>Meera Demo-Rao</strong><br /><span class="small muted">manual review required</span></td>
+          <td>
+            Will plus a bank nomination on a jointly held account. The two name different
+            people, which would be <code>BANK-WILL-001</code> on an individual account, but the
+            holding pattern puts it outside rule scope, so the engine emits
+            <code>GAP-JOINT-HOLDING</code> and draws no conclusion.
+          </td>
+          <td class="num">97</td>
         </tr>
       </tbody>
     </table>
     <p class="small muted">
-      Exactly one conflict fires for Aarav: <code>BANK-WILL-001</code>. That is by design — one
-      unambiguous finding is more convincing in a four-minute demo than five noisy ones.
+      Aarav fires exactly one conflict by design: one unambiguous finding is more convincing in
+      four minutes than five noisy ones. The other three exist so the demo can show a clean
+      result, a validity warning and a scope gap as visibly different things. Note Meera's 97 —
+      leaving rule scope raises the score, as section 8 explains.
+    </p>
+    <p>
+      Four of the seven rules still fire only in unit tests: <code>LIFE-NOTICE-001</code>,
+      <code>LIFE-WILL-001</code>, <code>MF-WILL-001</code> and <code>NPS-WILL-001</code>. That
+      is a gap between what the rule set covers and what the demo can show, and it is recorded
+      rather than glossed over.
     </p>
 
     <h2>12. Tests, and what they actually guarantee</h2>
     <p>
-      128 backend tests and 19 frontend tests. Counts are not the point; what they hold is. The
+      136 backend tests and 33 frontend tests. Counts are not the point; what they hold is. The
       interesting ones enforce the promises rather than the code:
     </p>
     <ul>
@@ -613,28 +648,36 @@ docker compose exec backend python scripts/seed_demo.py --yes</code></pre>
 
     <h2>13. Deployment, and what is deliberately unfinished</h2>
     <p>
-      Nothing is deployed. There is no hosted URL, no domain, no TLS and no managed database.
-      What exists is the mechanism for doing it safely, built and verified:
+      The stack runs on Render as two free-plan Docker web services, described by
+      <code>render.yaml</code> in the repository root. Three pieces make that safe:
     </p>
     <ul>
       <li>
-        <strong>An optional shared token.</strong> Set <code>API_TOKEN</code> and every route
-        except <code>/health</code> requires a bearer header. Off by default, which is correct
-        for a loopback demo. CORS wraps the check, so a rejected browser request shows a real
-        401 rather than an opaque network failure.
+        <strong>A shared token on the API.</strong> With <code>API_TOKEN</code> set, every route
+        except <code>/health</code> requires a bearer header. The free plan has no private
+        services, so the backend is publicly reachable and this is not optional there. CORS
+        wraps the check, so a rejected browser request shows a real 401 rather than an opaque
+        network failure.
       </li>
       <li>
-        <strong>A server-side proxy.</strong> Point the browser at <code>/api/backend</code>
-        and the Next.js server attaches the token, so the credential never reaches the browser
+        <strong>A server-side proxy.</strong> The browser calls <code>/api/backend</code> and
+        the Next.js server attaches the token, so the credential never reaches the browser
         bundle.
       </li>
       <li>
-        <strong>An honest runbook.</strong> <code>docs/DEPLOYMENT.md</code> states that the
-        proxy relays anonymously, so publishing the frontend still leaves the upload path open
-        unless real access control sits in front of it. That is listed as a required step, not
-        an optional hardening.
+        <strong>A credential in front of everything.</strong> One shared username and password,
+        checked on every request including the proxy, because the proxy relays whatever reaches
+        it. Only <code>/healthz</code> is exempt, and it returns a fixed string. On an instance
+        marked public, a missing credential returns 503 rather than serving traffic.
       </li>
     </ul>
+    <p>
+      Two things the free plan forces. There is no persistent disk, so SQLite lives under
+      <code>/tmp</code> and <code>SEED_ON_STARTUP</code> re-inserts the labelled snapshot on
+      every cold start: uploads and edits do not survive a restart, and the demo always begins
+      in a known state. And a free instance sleeps after about 15 minutes idle, so the first
+      request afterwards takes roughly a minute.
+    </p>
 
     <h3>The honest limitations list</h3>
     <table>
@@ -644,11 +687,17 @@ docker compose exec backend python scripts/seed_demo.py --yes</code></pre>
       <tbody>
         <tr>
           <td>No user accounts or authentication</td>
-          <td>Loopback-only demo. The token gate exists for hosting but is not user auth.</td>
+          <td>
+            The hosted instance has one shared password. That is a door with one key, enough to
+            share a demo URL, but it identifies nobody and has no rate limiting.
+          </td>
         </tr>
         <tr>
-          <td>SQLite with no migrations</td>
-          <td>All data is synthetic and disposable; a schema change resets it deliberately.</td>
+          <td>SQLite with no migrations, and no disk when hosted</td>
+          <td>
+            All data is synthetic and disposable; a schema change resets it deliberately, and a
+            hosted cold start reseeds from the labelled snapshot.
+          </td>
         </tr>
         <tr>
           <td>A joint asset extracted as <code>unknown</code> is still checked</td>
@@ -658,10 +707,12 @@ docker compose exec backend python scripts/seed_demo.py --yes</code></pre>
           </td>
         </tr>
         <tr>
-          <td>No seed document is a joint holding</td>
+          <td>Four of the seven rules fire only in tests</td>
           <td>
-            <code>GAP-JOINT-HOLDING</code> is covered by tests but not clickable in the demo.
-            Adding one would change the headline score of 75.
+            The seeded personas cover a conflict, a clean result, a validity warning and a scope
+            gap. <code>LIFE-NOTICE-001</code>, <code>LIFE-WILL-001</code>,
+            <code>MF-WILL-001</code> and <code>NPS-WILL-001</code> are unit-tested but not
+            clickable.
           </td>
         </tr>
         <tr>
